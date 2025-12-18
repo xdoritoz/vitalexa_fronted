@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
+import { getRoleFromToken, decodeJWT } from '../utils/jwtHelper';
 import '../styles/Login.css';
 
+
+
 export default function Login() {
-  const [username, setUsername] = useState('owner');
-  const [password, setPassword] = useState('1234');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -17,15 +20,51 @@ export default function Login() {
 
     try {
       const response = await client.post('/auth/login', { username, password });
-      localStorage.setItem('token', response.data.token);
+      const token = response.data.token;
+
+      // 🔥 DEBUG: Ver qué hay en el token
+        const decoded = decodeJWT(token);
+        console.log('🔍 TOKEN COMPLETO DECODIFICADO:', decoded);
+        console.log('🔍 Authorities:', decoded?.authorities);
+        console.log('🔍 Role:', decoded?.role);
+        console.log('🔍 Auth:', decoded?.auth);
+        console.log('🔍 Todas las keys:', Object.keys(decoded || {}));
+      
+      // Extraer el rol del token
+      const role = getRoleFromToken(token);
+      console.log('🔍 ROL EXTRAÍDO:', role);
+      
+      if (!role) {
+        setError('No se pudo obtener el rol del usuario');
+        return;
+      }
+
+      // Guardar en localStorage
+      localStorage.setItem('token', token);
       localStorage.setItem('username', username);
-      navigate('/dashboard');
+      localStorage.setItem('role', role);
+
+      // Redirigir según el rol (sin prefijo ROLE_)
+      const roleClean = role.replace('ROLE_', '');
+      
+      if (roleClean === 'ADMIN') {
+        navigate('/admin');
+      } else if (roleClean === 'VENDEDOR') {
+        navigate('/vendedor');
+      } else if (roleClean === 'OWNER') {
+        navigate('/owner');
+      } else {
+        navigate('/dashboard'); // Fallback al dashboard antiguo
+      }
+
     } catch (err) {
       setError(err.response?.data?.message || 'Error en login');
     } finally {
       setLoading(false);
     }
   };
+
+  
 
   return (
     <div className="login-container">
@@ -38,6 +77,7 @@ export default function Login() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             disabled={loading}
+            required
           />
           <input
             type="password"
@@ -45,6 +85,7 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
+            required
           />
           <button type="submit" disabled={loading}>
             {loading ? 'Ingresando...' : 'Ingresar'}
