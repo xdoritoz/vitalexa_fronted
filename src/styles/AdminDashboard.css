@@ -1068,3 +1068,112 @@
     width: 100%;
   }
 }
+
+/* ============================================
+   SECCIÓN DE FACTURA PDF
+   ============================================ */
+
+.invoice-actions {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 2px dashed #e5e7eb;
+}
+
+.invoice-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-invoice {
+  flex: 1;
+  min-width: 90px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn-invoice:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-invoice:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-invoice:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Botón Ver PDF */
+.btn-preview {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.btn-preview:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+/* Botón Imprimir */
+.btn-print {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+}
+
+.btn-print:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+/* Botón Descargar */
+.btn-download {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.btn-download:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+/* Separador entre secciones */
+.order-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .invoice-buttons {
+    flex-direction: column;
+  }
+  
+  .btn-invoice {
+    min-width: 100%;
+  }
+}
+
+/* Animación de carga */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.btn-invoice:disabled {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+

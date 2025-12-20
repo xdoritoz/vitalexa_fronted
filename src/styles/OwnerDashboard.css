@@ -1130,3 +1130,160 @@
     width: 100%;
   }
 }
+
+/* === SECCIÓN DE EXPORTACIÓN === */
+.export-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.export-section h3 {
+  margin-bottom: 15px;
+  color: #1f2937;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-export {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-export:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-pdf {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-pdf:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.btn-excel {
+  background: #059669;
+  color: white;
+}
+
+.btn-excel:hover:not(:disabled) {
+  background: #047857;
+}
+
+.btn-csv {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-csv:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.export-specific {
+  margin-bottom: 15px;
+}
+
+.export-specific button {
+  padding: 8px 16px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.export-specific button:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.export-specific button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* === OVERLAY DE EXPORTACIÓN === */
+.exporting-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.exporting-message {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f4f6;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* === BOTONES DE FACTURA === */
+.venta-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-preview-invoice,
+.btn-download-invoice {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-preview-invoice {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-preview-invoice:hover {
+  background: #2563eb;
+}
+
+.btn-download-invoice {
+  background: #059669;
+  color: white;
+}
+
+.btn-download-invoice:hover {
+  background: #047857;
+}
+

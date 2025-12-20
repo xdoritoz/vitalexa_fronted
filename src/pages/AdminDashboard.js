@@ -33,11 +33,15 @@ function AdminDashboard() {
 // ============================================
 // PANEL DE ÓRDENES CON AUTO-ACTUALIZACIÓN
 // ============================================
+// ============================================
+// PANEL DE ÓRDENES CON PDF DE FACTURA
+// ============================================
 function OrdersPanel() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filter, setFilter] = useState('pending');
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -73,13 +77,101 @@ function OrdersPanel() {
   const changeStatus = async (orderId, newStatus) => {
     try {
       await client.patch(`/admin/orders/${orderId}/status?status=${newStatus}`);
-      await fetchOrders(); // Recargar después de cambiar estado
+      await fetchOrders();
       alert(`Estado actualizado a ${newStatus}`);
     } catch (error) {
       console.error('Error al cambiar estado:', error);
       alert('Error al cambiar estado: ' + (error.response?.data?.message || error.message));
     }
   };
+
+  // ✅ NUEVA FUNCIÓN: Descargar factura PDF
+const handleDownloadInvoice = async (orderId) => {
+  try {
+    setDownloadingPdf(orderId);
+    const response = await client.get(`/admin/orders/${orderId}/invoice/pdf`, {
+      responseType: 'blob'
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `factura_orden_${orderId.substring(0, 8)}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    console.log('✅ PDF descargado correctamente');
+  } catch (error) {
+    console.error('Error al descargar factura:', error);
+    alert('Error al descargar la factura. Por favor intenta de nuevo.');
+  } finally {
+    setDownloadingPdf(null);
+  }
+};
+
+  // ✅ NUEVA FUNCIÓN: Abrir factura en nueva pestaña para imprimir
+const handlePrintInvoice = async (orderId) => {
+  try {
+    // Descargar el PDF con autenticación
+    const response = await client.get(`/admin/orders/${orderId}/invoice/pdf`, {
+      responseType: 'blob'
+    });
+
+    // Crear URL temporal del blob
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    
+    // Abrir en nueva ventana
+    const printWindow = window.open(url, '_blank');
+    
+    if (printWindow) {
+      // Esperar a que cargue y lanzar impresión
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      };
+      
+      // Limpiar URL después de 5 segundos
+      setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+    } else {
+      alert('Por favor permite las ventanas emergentes para esta función');
+      window.URL.revokeObjectURL(url);
+    }
+  } catch (error) {
+    console.error('Error al imprimir factura:', error);
+    alert('Error al abrir la factura para imprimir');
+  }
+};
+
+  // ✅ NUEVA FUNCIÓN: Vista previa del PDF
+const handlePreviewInvoice = async (orderId) => {
+  try {
+    // Descargar el PDF con autenticación
+    const response = await client.get(`/admin/orders/${orderId}/invoice/pdf`, {
+      responseType: 'blob'
+    });
+
+    // Crear URL temporal del blob
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    
+    // Abrir en nueva pestaña
+    const previewWindow = window.open(url, '_blank');
+    
+    if (!previewWindow) {
+      alert('Por favor permite las ventanas emergentes para esta función');
+    }
+    
+    // Limpiar URL después de 10 segundos
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  } catch (error) {
+    console.error('Error al previsualizar factura:', error);
+    alert('Error al abrir la vista previa de la factura');
+  }
+};
 
   const filteredOrders = orders.filter(order => {
     if (filter === 'pending') return order.estado === 'PENDIENTE' || order.estado === 'CONFIRMADO';
@@ -160,6 +252,38 @@ function OrdersPanel() {
                 </ul>
               </details>
 
+              {/* ✅ NUEVA SECCIÓN: BOTONES DE FACTURA PDF */}
+              <div className="invoice-actions">
+                <h4 style={{fontSize: '13px', marginBottom: '8px', color: '#6b7280'}}>
+                  📄 Factura / Orden de Empaque
+                </h4>
+                <div className="invoice-buttons">
+                  <button 
+                    className="btn-invoice btn-preview"
+                    onClick={() => handlePreviewInvoice(order.id)}
+                    title="Ver factura en nueva pestaña"
+                  >
+                    👁️ Ver PDF
+                  </button>
+                  <button 
+                    className="btn-invoice btn-print"
+                    onClick={() => handlePrintInvoice(order.id)}
+                    title="Abrir e imprimir directamente"
+                  >
+                    🖨️ Imprimir
+                  </button>
+                  <button 
+                    className="btn-invoice btn-download"
+                    onClick={() => handleDownloadInvoice(order.id)}
+                    disabled={downloadingPdf === order.id}
+                    title="Descargar archivo PDF"
+                  >
+                    {downloadingPdf === order.id ? '⏳' : '📥'} Descargar
+                  </button>
+                </div>
+              </div>
+
+              {/* ✅ BOTONES DE GESTIÓN DE ORDEN */}
               <div className="order-actions">
                 {order.estado === 'PENDIENTE' && (
                   <button 
@@ -205,6 +329,7 @@ function OrdersPanel() {
     </div>
   );
 }
+
 
 // ============================================
 // MODAL DE EDICIÓN DE ORDEN MEJORADO

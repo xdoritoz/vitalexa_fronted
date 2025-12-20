@@ -354,6 +354,7 @@ function ProductsTab({ products }) {
 
 // ===== REPORTS TAB (Placeholder) =====
 // ===== REPORTS TAB =====
+// ===== REPORTS TAB CON EXPORTACIÓN =====
 function ReportsTab({ orders, products }) {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -362,6 +363,7 @@ function ReportsTab({ orders, products }) {
     endDate: new Date().toISOString().split('T')[0]
   });
   const [activeReportTab, setActiveReportTab] = useState('overview');
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchReportData();
@@ -387,6 +389,89 @@ function ReportsTab({ orders, products }) {
 
   const handleDateChange = (field, value) => {
     setDateRange(prev => ({...prev, [field]: value}));
+  };
+
+  // ✅ NUEVA FUNCIÓN: Exportar reporte completo
+  const handleExportReport = async (format) => {
+    try {
+      setExporting(true);
+      const response = await client.get(`/reports/export/complete/${format}`, {
+        params: {
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        },
+        responseType: 'blob'
+      });
+
+      // Crear enlace de descarga
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const fileName = `reporte_completo_${dateRange.startDate}_${dateRange.endDate}.${format}`;
+      link.setAttribute('download', fileName);
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      alert(`Reporte ${format.toUpperCase()} descargado exitosamente`);
+    } catch (error) {
+      console.error(`Error al exportar a ${format}:`, error);
+      alert(`Error al exportar reporte a ${format.toUpperCase()}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // ✅ NUEVA FUNCIÓN: Exportar reportes específicos
+  const handleExportSpecific = async (type, format) => {
+    try {
+      setExporting(true);
+      let endpoint = '';
+      let params = {};
+      
+      switch(type) {
+        case 'sales':
+          endpoint = `/reports/export/sales/${format}`;
+          params = {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate
+          };
+          break;
+        case 'products':
+          endpoint = `/reports/export/products/${format}`;
+          break;
+        case 'clients':
+          endpoint = `/reports/export/clients/${format}`;
+          break;
+        default:
+          return;
+      }
+
+      const response = await client.get(endpoint, {
+        params: params,
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const fileName = `reporte_${type}_${new Date().toISOString().split('T')[0]}.${format}`;
+      link.setAttribute('download', fileName);
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      alert(`Reporte de ${type} descargado exitosamente`);
+    } catch (error) {
+      console.error(`Error al exportar ${type}:`, error);
+      alert(`Error al exportar reporte de ${type}`);
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (loading) {
@@ -420,6 +505,34 @@ function ReportsTab({ orders, products }) {
           </label>
           <button onClick={fetchReportData} className="btn-refresh">
             🔄 Actualizar
+          </button>
+        </div>
+      </div>
+
+      {/* ✅ NUEVA SECCIÓN: Botones de Exportación */}
+      <div className="export-section">
+        <h3>📥 Exportar Reporte Completo</h3>
+        <div className="export-buttons">
+          <button 
+            onClick={() => handleExportReport('pdf')} 
+            disabled={exporting}
+            className="btn-export btn-pdf"
+          >
+            📄 Descargar PDF
+          </button>
+          <button 
+            onClick={() => handleExportReport('excel')} 
+            disabled={exporting}
+            className="btn-export btn-excel"
+          >
+            📊 Descargar Excel
+          </button>
+          <button 
+            onClick={() => handleExportReport('csv')} 
+            disabled={exporting}
+            className="btn-export btn-csv"
+          >
+            📋 Descargar CSV
           </button>
         </div>
       </div>
@@ -459,14 +572,51 @@ function ReportsTab({ orders, products }) {
 
       <div className="report-content">
         {activeReportTab === 'overview' && <OverviewReport data={reportData} />}
-        {activeReportTab === 'sales' && <SalesReport data={reportData.salesReport} />}
-        {activeReportTab === 'products' && <ProductsReport data={reportData.productReport} />}
+        {activeReportTab === 'sales' && (
+          <>
+            <div className="export-specific">
+              <button onClick={() => handleExportSpecific('sales', 'pdf')} disabled={exporting}>
+                📄 Exportar Ventas PDF
+              </button>
+            </div>
+            <SalesReport data={reportData.salesReport} />
+          </>
+        )}
+        {activeReportTab === 'products' && (
+          <>
+            <div className="export-specific">
+              <button onClick={() => handleExportSpecific('products', 'excel')} disabled={exporting}>
+                📊 Exportar Productos Excel
+              </button>
+            </div>
+            <ProductsReport data={reportData.productReport} />
+          </>
+        )}
         {activeReportTab === 'vendors' && <VendorsReport data={reportData.vendorReport} />}
-        {activeReportTab === 'clients' && <ClientsReport data={reportData.clientReport} />}
+        {activeReportTab === 'clients' && (
+          <>
+            <div className="export-specific">
+              <button onClick={() => handleExportSpecific('clients', 'csv')} disabled={exporting}>
+                📋 Exportar Clientes CSV
+              </button>
+            </div>
+            <ClientsReport data={reportData.clientReport} />
+          </>
+        )}
       </div>
+
+      {exporting && (
+        <div className="exporting-overlay">
+          <div className="exporting-message">
+            <div className="spinner"></div>
+            <p>Generando reporte...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ===== OVERVIEW REPORT =====
 function OverviewReport({ data }) {
