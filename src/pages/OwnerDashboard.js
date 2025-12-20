@@ -171,85 +171,107 @@ function OverviewTab({ stats }) {
 }
 
 // ===== ORDERS TAB =====
-function OrdersTab({ orders, onSelectOrder }) {
-  const [filter, setFilter] = useState('all');
+// En tu OwnerDashboard.js
 
+function OrdersTab({ orders }) {
+  const [filter, setFilter] = useState('pending');
+
+  // ✅ FILTRO CORREGIDO
   const filteredOrders = orders.filter(order => {
-    if (filter === 'all') return true;
+    if (filter === 'pending') {
+      // Incluir tanto PENDIENTE como CONFIRMADO
+      return order.estado === 'PENDIENTE' || order.estado === 'CONFIRMADO';
+    }
+    if (filter === 'completed') {
+      return order.estado === 'COMPLETADO';
+    }
+    if (filter === 'all') {
+      return true;
+    }
     return order.estado === filter;
   });
 
   return (
-    <div className="orders-tab">
-      <div className="tab-header">
-        <h2>Todas las Órdenes</h2>
-        <div className="filter-buttons">
-          <button 
-            className={filter === 'all' ? 'active' : ''} 
+    <div className="orders-section">
+      <div className="orders-header">
+        <h2>📦 Gestión de Órdenes</h2>
+        <div className="filter-tabs">
+          <button
+            className={filter === 'pending' ? 'active' : ''}
+            onClick={() => setFilter('pending')}
+          >
+            ⏳ Pendientes ({orders.filter(o => o.estado === 'PENDIENTE' || o.estado === 'CONFIRMADO').length})
+          </button>
+          <button
+            className={filter === 'completed' ? 'active' : ''}
+            onClick={() => setFilter('completed')}
+          >
+            ✅ Completadas ({orders.filter(o => o.estado === 'COMPLETADO').length})
+          </button>
+          <button
+            className={filter === 'all' ? 'active' : ''}
             onClick={() => setFilter('all')}
           >
-            Todas ({orders.length})
-          </button>
-          <button 
-            className={filter === 'COMPLETADO' ? 'active' : ''} 
-            onClick={() => setFilter('COMPLETADO')}
-          >
-            Completadas ({orders.filter(o => o.estado === 'COMPLETADO').length})
-          </button>
-          <button 
-            className={filter === 'PENDIENTE' ? 'active' : ''} 
-            onClick={() => setFilter('PENDIENTE')}
-          >
-            Pendientes ({orders.filter(o => o.estado === 'PENDIENTE').length})
+            📊 Todas ({orders.length})
           </button>
         </div>
       </div>
 
       <div className="orders-grid">
-        {filteredOrders.map(order => (
-          <div 
-            key={order.id} 
-            className="order-card"
-            onClick={() => onSelectOrder(order)}
-          >
-            <div className="order-header">
-              <span className="order-id">#{order.id.substring(0, 8)}</span>
-              <span className={`order-status ${order.estado.toLowerCase()}`}>
-                {order.estado}
-              </span>
-            </div>
-            
-            <div className="order-info">
-              <p><strong>Vendedor:</strong> {order.vendedor}</p>
-              <p><strong>Cliente:</strong> {order.cliente}</p>
-              <p><strong>Fecha:</strong> {new Date(order.fecha).toLocaleString()}</p>
-              <p className="order-total"><strong>Total:</strong> ${parseFloat(order.total).toFixed(2)}</p>
-            </div>
-
-            {order.notas && (
-              <div className="order-notes">
-                <strong>📝 Notas:</strong>
-                <p>{order.notas}</p>
-              </div>
-            )}
-
-            <div className="order-items-preview">
-              <strong>Productos ({order.items.length}):</strong>
-              <ul>
-                {order.items.slice(0, 3).map((item, idx) => (
-                  <li key={idx}>
-                    {item.productName} x{item.cantidad}
-                  </li>
-                ))}
-                {order.items.length > 3 && <li>... y {order.items.length - 3} más</li>}
-              </ul>
-            </div>
+        {filteredOrders.length === 0 ? (
+          <div className="empty-state">
+            <p>📭 No hay órdenes en esta categoría</p>
           </div>
-        ))}
+        ) : (
+          filteredOrders.map(order => (
+            <div key={order.id} className="order-card">
+              <div className="order-header">
+                <span className="order-id">#{order.id.substring(0, 8)}</span>
+                <span className={`order-status status-${order.estado.toLowerCase()}`}>
+                  {order.estado}
+                </span>
+              </div>
+
+              <div className="order-info">
+                <p><strong>Vendedor:</strong> {order.vendedor}</p>
+                <p><strong>Cliente:</strong> {order.cliente}</p>
+                <p><strong>Fecha:</strong> {new Date(order.fecha).toLocaleString('es-ES')}</p>
+                <p className="order-total">
+                  <strong>Total:</strong> ${parseFloat(order.total).toFixed(2)}
+                </p>
+                
+                {order.notas && (
+                  <div className="order-notes">
+                    <strong>📝 Notas:</strong>
+                    <p>{order.notas}</p>
+                  </div>
+                )}
+              </div>
+
+              <details className="order-details">
+                <summary>Ver productos ({order.items.length})</summary>
+                <ul>
+                  {order.items.map((item, idx) => (
+                    <li key={idx}>
+                      <span className="item-name">{item.productName}</span>
+                      <span className="item-qty">
+                        {item.cantidad} x ${parseFloat(item.precioUnitario).toFixed(2)}
+                      </span>
+                      <span className="item-subtotal">
+                        ${parseFloat(item.subtotal).toFixed(2)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
 }
+
 
 // ===== PRODUCTS TAB =====
 function ProductsTab({ products }) {

@@ -1,3 +1,4 @@
+// src/services/NotificationService.js
 import SockJS from 'sockjs-client';
 import { Stomp } from '@stomp/stompjs';
 
@@ -6,68 +7,114 @@ class NotificationService {
     this.stompClient = null;
     this.subscriptions = [];
     this.connected = false;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 10;
   }
 
   connect(onMessageReceived, userRole = 'vendedor') {
+    if (this.connected) {
+      console.log('⚠️ Ya estás conectado al WebSocket');
+      return;
+    }
+
+    console.log(`🔌 Conectando WebSocket como ${userRole}...`);
+    
     const socket = new SockJS('http://localhost:8080/ws');
     this.stompClient = Stomp.over(socket);
 
-    // Desactivar logs de debug
-    this.stompClient.debug = () => {};
+    // Desactivar logs de debug en producción
+    this.stompClient.debug = (msg) => {
+      // Comentar esta línea en producción
+      // console.log('STOMP:', msg);
+    };
 
-    this.stompClient.connect({}, (frame) => {
-      console.log('✅ WebSocket conectado:', frame);
-      this.connected = true;
+    this.stompClient.connect(
+      {},
+      (frame) => {
+        console.log('✅ WebSocket conectado exitosamente');
+        this.connected = true;
+        this.reconnectAttempts = 0;
 
-      // Suscribirse según el rol
-      if (userRole === 'admin' || userRole === 'owner') {
+        // ✅ SUSCRIPCIÓN ÚNICA PARA ADMIN Y OWNER
+        if (userRole === 'admin' || userRole === 'owner') {
+          this.subscriptions.push(
+            this.stompClient.subscribe('/topic/admin-owner/notifications', (message) => {
+              const notification = JSON.parse(message.body);
+              console.log('📬 Notificación admin/owner:', notification.type);
+              onMessageReceived(notification);
+            })
+          );
+          console.log('📡 Suscrito a /topic/admin-owner/notifications');
+        }
+
+        // Todos reciben notificaciones generales (órdenes completadas)
         this.subscriptions.push(
-          this.stompClient.subscribe('/topic/admin/notifications', (message) => {
+          this.stompClient.subscribe('/topic/notifications', (message) => {
             const notification = JSON.parse(message.body);
-            console.log('📬 Notificación admin recibida:', notification);
+            console.log('📬 Notificación general:', notification.type);
             onMessageReceived(notification);
           })
         );
-
-        this.subscriptions.push(
-          this.stompClient.subscribe('/topic/owner/notifications', (message) => {
-            const notification = JSON.parse(message.body);
-            console.log('📬 Notificación owner recibida:', notification);
-            onMessageReceived(notification);
-          })
-        );
+        console.log('📡 Suscrito a /topic/notifications');
+      },
+      (error) => {
+        console.error('❌ Error en WebSocket:', error);
+        this.connected = false;
+        this.handleReconnect(onMessageReceived, userRole);
       }
+    );
+  }
 
-      // Todos pueden recibir notificaciones generales
-      this.subscriptions.push(
-        this.stompClient.subscribe('/topic/notifications', (message) => {
-          const notification = JSON.parse(message.body);
-          console.log('📬 Notificación general recibida:', notification);
-          onMessageReceived(notification);
-        })
-      );
-    }, (error) => {
-      console.error('❌ Error en WebSocket:', error);
-      this.connected = false;
-      // Reintentar conexión después de 5 segundos
+  handleReconnect(onMessageReceived, userRole) {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+      
+      console.log(`🔄 Reintentando conexión en ${delay/1000}s (intento ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+      
       setTimeout(() => {
-        console.log('🔄 Reintentando conexión WebSocket...');
         this.connect(onMessageReceived, userRole);
-      }, 5000);
-    });
+      }, delay);
+    } else {
+      console.error('❌ Se alcanzó el máximo de intentos de reconexión');
+    }
   }
 
   disconnect() {
     if (this.stompClient && this.connected) {
-      this.subscriptions.forEach(sub => sub.unsubscribe());
-      this.stompClient.disconnect();
+      this.subscriptions.forEach(sub => {
+        try {
+          sub.unsubscribe();
+        } catch (error) {
+          console.error('Error al desuscribirse:', error);
+        }
+      });
+      this.subscriptions = [];
+      
+      try {
+        this.stompClient.disconnect(() => {
+          console.log('🔌 Desconectado de WebSocket');
+        });
+      } catch (error) {
+        console.error('Error al desconectar:', error);
+      }
+      
       this.connected = false;
-      console.log('🔌 Desconectado de WebSocket');
+      this.reconnectAttempts = 0;
     }
   }
 
   isConnected() {
     return this.connected;
+  }
+
+  // Método para enviar mensajes (opcional, por si lo necesitas)
+  send(destination, message) {
+    if (this.connected && this.stompClient) {
+      this.stompClient.send(destination, {}, JSON.stringify(message));
+    } else {
+      console.error('No se puede enviar: WebSocket no conectado');
+    }
   }
 }
 

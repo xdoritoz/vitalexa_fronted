@@ -1,27 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import '../styles/AdminDashboard.css';
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('orders');
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
-  };
 
   return (
     <div className="admin-dashboard">
-      <header className="dashboard-header">
-        <h1>Panel de Administración - Vitalexa</h1>
-        <div className="header-info">
-          <span>👤 {localStorage.getItem('username')}</span>
-          <button onClick={handleLogout} className="btn-logout">Cerrar Sesión</button>
-        </div>
-      </header>
-
       <nav className="dashboard-nav">
         <button 
           className={activeTab === 'orders' ? 'active' : ''} 
@@ -46,7 +31,7 @@ function AdminDashboard() {
 }
 
 // ============================================
-// PANEL DE ÓRDENES
+// PANEL DE ÓRDENES CON AUTO-ACTUALIZACIÓN
 // ============================================
 function OrdersPanel() {
   const [orders, setOrders] = useState([]);
@@ -56,14 +41,30 @@ function OrdersPanel() {
 
   useEffect(() => {
     fetchOrders();
+
+    // ✅ LISTENER PARA AUTO-ACTUALIZACIÓN AL RECIBIR NOTIFICACIÓN
+    const handleNewOrder = () => {
+      console.log('🔄 Auto-actualizando órdenes...');
+      fetchOrders();
+    };
+
+    window.addEventListener('new-order-notification', handleNewOrder);
+    window.addEventListener('order-completed-notification', handleNewOrder);
+
+    return () => {
+      window.removeEventListener('new-order-notification', handleNewOrder);
+      window.removeEventListener('order-completed-notification', handleNewOrder);
+    };
   }, []);
 
   const fetchOrders = async () => {
     try {
       const response = await client.get('/admin/orders');
       setOrders(response.data);
+      console.log('✅ Órdenes actualizadas:', response.data.length);
     } catch (error) {
       console.error('Error al cargar órdenes:', error);
+      alert('Error al cargar órdenes: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -72,11 +73,11 @@ function OrdersPanel() {
   const changeStatus = async (orderId, newStatus) => {
     try {
       await client.patch(`/admin/orders/${orderId}/status?status=${newStatus}`);
-      fetchOrders();
-      alert('Estado actualizado correctamente');
+      await fetchOrders(); // Recargar después de cambiar estado
+      alert(`Estado actualizado a ${newStatus}`);
     } catch (error) {
       console.error('Error al cambiar estado:', error);
-      alert('Error al cambiar estado: ' + (error.response?.data || error.message));
+      alert('Error al cambiar estado: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -100,26 +101,26 @@ function OrdersPanel() {
             className={filter === 'pending' ? 'active' : ''}
             onClick={() => setFilter('pending')}
           >
-            ⏳ Pendientes
+            ⏳ Pendientes ({orders.filter(o => o.estado === 'PENDIENTE' || o.estado === 'CONFIRMADO').length})
           </button>
           <button 
             className={filter === 'completed' ? 'active' : ''}
             onClick={() => setFilter('completed')}
           >
-            ✅ Completadas
+            ✅ Completadas ({orders.filter(o => o.estado === 'COMPLETADO').length})
           </button>
           <button 
             className={filter === 'all' ? 'active' : ''}
             onClick={() => setFilter('all')}
           >
-            📊 Todas
+            📊 Todas ({orders.length})
           </button>
         </div>
       </div>
 
       {filteredOrders.length === 0 ? (
         <div className="empty-state">
-          <p>No hay órdenes en esta categoría</p>
+          <p>📭 No hay órdenes en esta categoría</p>
         </div>
       ) : (
         <div className="orders-grid">
@@ -135,7 +136,7 @@ function OrdersPanel() {
               <div className="order-info">
                 <p><strong>Vendedor:</strong> {order.vendedor}</p>
                 <p><strong>Cliente:</strong> {order.cliente}</p>
-                <p><strong>Fecha:</strong> {new Date(order.fecha).toLocaleString()}</p>
+                <p><strong>Fecha:</strong> {new Date(order.fecha).toLocaleString('es-ES')}</p>
                 <p className="order-total"><strong>Total:</strong> ${parseFloat(order.total).toFixed(2)}</p>
                 
                 {order.notas && (
@@ -151,7 +152,8 @@ function OrdersPanel() {
                 <ul>
                   {order.items.map((item, idx) => (
                     <li key={idx}>
-                      {item.productName} - {item.cantidad} x ${parseFloat(item.precioUnitario).toFixed(2)}
+                      <span className="item-name">{item.productName}</span>
+                      <span className="item-qty">{item.cantidad} x ${parseFloat(item.precioUnitario).toFixed(2)}</span>
                       <span className="item-subtotal">${parseFloat(item.subtotal).toFixed(2)}</span>
                     </li>
                   ))}
@@ -159,6 +161,15 @@ function OrdersPanel() {
               </details>
 
               <div className="order-actions">
+                {order.estado === 'PENDIENTE' && (
+                  <button 
+                    className="btn-confirm"
+                    onClick={() => changeStatus(order.id, 'CONFIRMADO')}
+                  >
+                    ✓ Confirmar
+                  </button>
+                )}
+                
                 {order.estado === 'CONFIRMADO' && (
                   <>
                     <button 
@@ -174,15 +185,6 @@ function OrdersPanel() {
                       ✅ Completar
                     </button>
                   </>
-                )}
-                
-                {order.estado === 'PENDIENTE' && (
-                  <button 
-                    className="btn-complete"
-                    onClick={() => changeStatus(order.id, 'CONFIRMADO')}
-                  >
-                    ✓ Confirmar
-                  </button>
                 )}
               </div>
             </div>
@@ -204,7 +206,9 @@ function OrdersPanel() {
   );
 }
 
-
+// ============================================
+// MODAL DE EDICIÓN DE ORDEN MEJORADO
+// ============================================
 function EditOrderModal({ order, onClose, onSuccess }) {
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
@@ -229,13 +233,13 @@ function EditOrderModal({ order, onClose, onSuccess }) {
       setClients(clientsRes.data);
       setProducts(productsRes.data);
       
-      // Inicializar items con índice único
+      // Inicializar items con ID único
       const mappedItems = order.items.map((item, index) => ({
-        id: `item-${index}`,  // ID único temporal
+        id: `item-${Date.now()}-${index}`,
         productId: item.productId,
         productName: item.productName,
         cantidad: item.cantidad,
-        precioUnitario: item.precioUnitario
+        precioUnitario: parseFloat(item.precioUnitario)
       }));
       
       // Encontrar cliente actual
@@ -267,14 +271,14 @@ function EditOrderModal({ order, onClose, onSuccess }) {
     e.preventDefault();
     
     if (formData.items.length === 0) {
-      alert('Debe haber al menos un producto en la orden');
+      alert('❌ Debe haber al menos un producto en la orden');
       return;
     }
 
-    const validItems = formData.items.filter(item => item.productId);
+    const validItems = formData.items.filter(item => item.productId && item.cantidad > 0);
     
     if (validItems.length === 0) {
-      alert('No hay productos válidos en la orden');
+      alert('❌ No hay productos válidos en la orden');
       return;
     }
     
@@ -289,35 +293,25 @@ function EditOrderModal({ order, onClose, onSuccess }) {
       };
       
       await client.put(`/admin/orders/${order.id}`, payload);
-      
-      alert('Orden actualizada correctamente');
+      alert('✅ Orden actualizada correctamente');
       onSuccess();
     } catch (error) {
       console.error('Error al actualizar orden:', error);
-      alert('Error al actualizar orden: ' + (error.response?.data?.message || error.message));
+      alert('❌ Error al actualizar orden: ' + (error.response?.data?.message || error.message));
     }
   };
 
   const addItem = (product) => {
     const existing = formData.items.find(i => i.productId === product.id);
     if (existing) {
-      // Actualizar cantidad del item existente
-      setFormData(prev => ({
-        ...prev,
-        items: prev.items.map(i =>
-          i.id === existing.id  // Usar ID único, no productId
-            ? {...i, cantidad: i.cantidad + 1} 
-            : i
-        )
-      }));
+      updateQuantity(existing.id, existing.cantidad + 1);
     } else {
-      // Agregar nuevo item con ID único
       const newItem = {
-        id: `item-${Date.now()}`,  // ID único temporal
+        id: `item-${Date.now()}-${Math.random()}`,
         productId: product.id,
         productName: product.nombre,
         cantidad: 1,
-        precioUnitario: product.precio
+        precioUnitario: parseFloat(product.precio)
       };
       setFormData(prev => ({
         ...prev,
@@ -333,7 +327,6 @@ function EditOrderModal({ order, onClose, onSuccess }) {
     }));
   };
 
-  // ARREGLO PRINCIPAL: updateQuantity con ID único
   const updateQuantity = (itemId, nuevaCantidad) => {
     const cantidad = parseInt(nuevaCantidad);
     
@@ -345,11 +338,15 @@ function EditOrderModal({ order, onClose, onSuccess }) {
     setFormData(prev => ({
       ...prev,
       items: prev.items.map(i =>
-        i.id === itemId  // Comparar por ID único, no por productId
-          ? {...i, cantidad: cantidad} 
-          : i
+        i.id === itemId ? {...i, cantidad: cantidad} : i
       )
     }));
+  };
+
+  const calculateTotal = () => {
+    return formData.items.reduce((sum, item) => 
+      sum + (item.precioUnitario * item.cantidad), 0
+    ).toFixed(2);
   };
 
   if (loading) {
@@ -366,16 +363,17 @@ function EditOrderModal({ order, onClose, onSuccess }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content-large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>Editar Orden #{order.id.substring(0, 8)}</h3>
+          <h3>✏️ Editar Orden #{order.id.substring(0, 8)}</h3>
           <button className="btn-close" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="edit-order-form">
           <div className="form-section">
-            <h4>Cliente</h4>
+            <h4>👤 Cliente</h4>
             <select 
               value={formData.clientId || ''}
               onChange={(e) => setFormData(prev => ({...prev, clientId: e.target.value || null}))}
+              className="form-select"
             >
               <option value="">Sin cliente</option>
               {clients.map(c => (
@@ -387,31 +385,34 @@ function EditOrderModal({ order, onClose, onSuccess }) {
           </div>
 
           <div className="form-section">
-            <h4>Productos en la orden ({formData.items.length})</h4>
+            <h4>🛒 Productos en la orden</h4>
             {formData.items.length === 0 ? (
-              <p style={{color: '#dc2626', fontSize: '14px'}}>
-                ⚠️ No hay productos en la orden
-              </p>
+              <div className="alert-warning">
+                ⚠️ No hay productos en la orden. Agrega al menos uno.
+              </div>
             ) : (
               <div className="order-items-list">
                 {formData.items.map((item) => (
                   <div key={item.id} className="edit-item">
-                    <span>{item.productName}</span>
+                    <span className="item-name">{item.productName}</span>
                     <div className="item-controls">
                       <button 
                         type="button" 
+                        className="btn-qty"
                         onClick={() => updateQuantity(item.id, item.cantidad - 1)}
                       >
-                        -
+                        −
                       </button>
                       <input 
                         type="number"
                         value={item.cantidad}
                         onChange={(e) => updateQuantity(item.id, e.target.value)}
                         min="1"
+                        className="qty-input"
                       />
                       <button 
                         type="button" 
+                        className="btn-qty"
                         onClick={() => updateQuantity(item.id, item.cantidad + 1)}
                       >
                         +
@@ -420,6 +421,7 @@ function EditOrderModal({ order, onClose, onSuccess }) {
                         type="button" 
                         className="btn-remove-item" 
                         onClick={() => removeItem(item.id)}
+                        title="Eliminar producto"
                       >
                         🗑️
                       </button>
@@ -429,12 +431,16 @@ function EditOrderModal({ order, onClose, onSuccess }) {
                     </span>
                   </div>
                 ))}
+                <div className="order-total-row">
+                  <strong>TOTAL:</strong>
+                  <strong className="total-amount">${calculateTotal()}</strong>
+                </div>
               </div>
             )}
           </div>
 
           <div className="form-section">
-            <h4>Agregar más productos</h4>
+            <h4>➕ Agregar más productos</h4>
             <div className="products-quick-add">
               {products.filter(p => p.active).map(product => (
                 <button 
@@ -442,6 +448,7 @@ function EditOrderModal({ order, onClose, onSuccess }) {
                   type="button"
                   className="btn-quick-add"
                   onClick={() => addItem(product)}
+                  title={`Stock disponible: ${product.stock}`}
                 >
                   + {product.nombre} (${parseFloat(product.precio).toFixed(2)})
                 </button>
@@ -450,12 +457,13 @@ function EditOrderModal({ order, onClose, onSuccess }) {
           </div>
 
           <div className="form-section">
-            <h4>Notas</h4>
+            <h4>📝 Notas</h4>
             <textarea
               value={formData.notas}
               onChange={(e) => setFormData(prev => ({...prev, notas: e.target.value}))}
               rows="3"
               placeholder="Notas adicionales sobre la orden..."
+              className="form-textarea"
             />
           </div>
 
@@ -463,8 +471,8 @@ function EditOrderModal({ order, onClose, onSuccess }) {
             <button type="button" onClick={onClose} className="btn-cancel">
               Cancelar
             </button>
-            <button type="submit" className="btn-save">
-              Guardar Cambios
+            <button type="submit" className="btn-save" disabled={formData.items.length === 0}>
+              💾 Guardar Cambios
             </button>
           </div>
         </form>
@@ -473,87 +481,15 @@ function EditOrderModal({ order, onClose, onSuccess }) {
   );
 }
 
-
-
-
 // ============================================
-// MODAL DE DETALLE DE ORDEN
-// ============================================
-function OrderDetailModal({ order, onClose, onStatusChange }) {
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Detalle de Orden #{order.id.substring(0, 8)}</h3>
-          <button className="btn-close" onClick={onClose}>✕</button>
-        </div>
-
-        <div className="modal-body">
-          <div className="detail-section">
-            <h4>Información General</h4>
-            <p><strong>Estado:</strong> <span className={`status-badge status-${order.estado.toLowerCase()}`}>{order.estado}</span></p>
-            <p><strong>Fecha:</strong> {new Date(order.fecha).toLocaleString()}</p>
-            <p><strong>Cliente:</strong> {order.cliente}</p>
-            <p><strong>Vendedor:</strong> {order.vendedor}</p>
-          </div>
-
-          <div className="detail-section">
-            <h4>Productos</h4>
-            <table className="detail-table">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Cant.</th>
-                  <th>Precio</th>
-                  <th>Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {order.items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>{item.productName}</td>
-                    <td>{item.cantidad}</td>
-                    <td>${parseFloat(item.precioUnitario).toFixed(2)}</td>
-                    <td>${parseFloat(item.subtotal).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="total-row">
-              <strong>TOTAL:</strong> ${parseFloat(order.total).toFixed(2)}
-            </div>
-          </div>
-
-          <div className="modal-actions">
-            {order.estado === 'CONFIRMADO' && (
-              <button 
-                className="btn-complete-full" 
-                onClick={() => onStatusChange(order.id, 'COMPLETADO')}
-              >
-                Marcar como Completada
-              </button>
-            )}
-            <button 
-              className="btn-cancel-order" 
-              onClick={() => onStatusChange(order.id, 'CANCELADO')}
-            >
-              Cancelar Orden
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// PANEL DE PRODUCTOS
+// PANEL DE PRODUCTOS MEJORADO
 // ============================================
 function ProductsPanel() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchProducts();
@@ -565,34 +501,39 @@ function ProductsPanel() {
       setProducts(response.data);
     } catch (error) {
       console.error('Error al cargar productos:', error);
+      alert('Error al cargar productos');
     } finally {
       setLoading(false);
     }
   };
 
-const toggleStatus = async (productId, currentStatus) => {
-  try {
-    // ⚠️ Cambiar de /status a /estado
-    await client.patch(`/admin/products/${productId}/estado?activo=${!currentStatus}`);
-    fetchProducts();
-  } catch (error) {
-    console.error('Error al cambiar estado:', error);
-    alert('Error al cambiar el estado del producto');
-  }
-};
-
+  const toggleStatus = async (productId, currentStatus) => {
+    try {
+      await client.patch(`/admin/products/${productId}/estado?activo=${!currentStatus}`);
+      await fetchProducts();
+    } catch (error) {
+      console.error('Error al cambiar estado:', error);
+      alert('Error al cambiar el estado del producto');
+    }
+  };
 
   const deleteProduct = async (productId) => {
-    if (!window.confirm('¿Estás seguro de eliminar este producto?')) return;
+    if (!window.confirm('⚠️ ¿Estás seguro de eliminar este producto?')) return;
     
     try {
       await client.delete(`/admin/products/${productId}`);
-      alert('Producto eliminado');
-      fetchProducts();
+      alert('✅ Producto eliminado');
+      await fetchProducts();
     } catch (error) {
       console.error('Error al eliminar:', error);
+      alert('❌ Error al eliminar producto');
     }
   };
+
+  const filteredProducts = products.filter(p => 
+    p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return <div className="loading">Cargando productos...</div>;
@@ -602,46 +543,73 @@ const toggleStatus = async (productId, currentStatus) => {
     <div className="products-panel">
       <div className="panel-header">
         <h2>📦 Gestión de Productos</h2>
-        <button className="btn-add" onClick={() => setShowForm(true)}>
-          + Nuevo Producto
-        </button>
+        <div className="header-actions">
+          <input
+            type="text"
+            placeholder="🔍 Buscar productos..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          <button className="btn-add" onClick={() => setShowForm(true)}>
+            + Nuevo Producto
+          </button>
+        </div>
       </div>
 
-      <div className="products-grid">
-        {products.map(product => (
-          <div key={product.id} className={`product-card ${!product.active ? 'inactive' : ''}`}>
-            <div className="product-image">
-              <img 
-                src={`http://localhost:8080/api/images/products/${product.imageUrl}`} 
-                alt={product.nombre}
-                onError={(e) => {
-                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3ESin Imagen%3C/text%3E%3C/svg%3E';
-                }}
-              />
-            </div>
+      <div className="products-stats">
+        <span>Total: {products.length}</span>
+        <span>Activos: {products.filter(p => p.active).length}</span>
+        <span>Inactivos: {products.filter(p => !p.active).length}</span>
+      </div>
 
-            <div className="product-info">
-              <h3>{product.nombre}</h3>
-              <p className="product-description">{product.descripcion}</p>
-              <div className="product-details">
-                <span className="product-price">${parseFloat(product.precio).toFixed(2)}</span>
-                <span className="product-stock">Stock: {product.stock}</span>
+      {filteredProducts.length === 0 ? (
+        <div className="empty-state">
+          <p>📭 No se encontraron productos</p>
+        </div>
+      ) : (
+        <div className="products-grid">
+          {filteredProducts.map(product => (
+            <div key={product.id} className={`product-card ${!product.active ? 'inactive' : ''}`}>
+              <div className="product-image">
+                <img 
+                  src={`http://localhost:8080/api/images/products/${product.imageUrl}`} 
+                  alt={product.nombre}
+                  onError={(e) => {
+                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3ESin Imagen%3C/text%3E%3C/svg%3E';
+                  }}
+                />
               </div>
-              <span className={`product-status ${product.active ? 'active' : 'inactive'}`}>
-                {product.active ? '✅ Activo' : '❌ Inactivo'}
-              </span>
-            </div>
 
-            <div className="product-actions">
-              <button onClick={() => setEditingProduct(product)}>✏️ Editar</button>
-              <button onClick={() => toggleStatus(product.id, product.active)}>
-                {product.active ? '🔒 Desactivar' : '🔓 Activar'}
-              </button>
-              <button className="btn-delete" onClick={() => deleteProduct(product.id)}>🗑️</button>
+              <div className="product-info">
+                <h3>{product.nombre}</h3>
+                <p className="product-description">{product.descripcion || 'Sin descripción'}</p>
+                <div className="product-details">
+                  <span className="product-price">${parseFloat(product.precio).toFixed(2)}</span>
+                  <span className={`product-stock ${product.stock < 10 ? 'low-stock' : ''}`}>
+                    📦 Stock: {product.stock}
+                  </span>
+                </div>
+                <span className={`product-status ${product.active ? 'active' : 'inactive'}`}>
+                  {product.active ? '✅ Activo' : '❌ Inactivo'}
+                </span>
+              </div>
+
+              <div className="product-actions">
+                <button onClick={() => setEditingProduct(product)} className="btn-action">
+                  ✏️
+                </button>
+                <button onClick={() => toggleStatus(product.id, product.active)} className="btn-action">
+                  {product.active ? '🔒' : '🔓'}
+                </button>
+                <button className="btn-action btn-delete" onClick={() => deleteProduct(product.id)}>
+                  🗑️
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {(showForm || editingProduct) && (
         <ProductFormModal 
@@ -662,7 +630,7 @@ const toggleStatus = async (productId, currentStatus) => {
 }
 
 // ============================================
-// FORMULARIO DE PRODUCTO (Modal)
+// FORMULARIO DE PRODUCTO MEJORADO
 // ============================================
 function ProductFormModal({ product, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -670,10 +638,24 @@ function ProductFormModal({ product, onClose, onSuccess }) {
     descripcion: product?.descripcion || '',
     precio: product?.precio || '',
     stock: product?.stock || '',
+    reorderPoint: product?.reorderPoint || 10,
     active: product?.active !== undefined ? product.active : true
   });
   const [imageFile, setImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -685,38 +667,30 @@ function ProductFormModal({ product, onClose, onSuccess }) {
       formDataToSend.append('descripcion', formData.descripcion || '');
       formDataToSend.append('precio', formData.precio);
       formDataToSend.append('stock', formData.stock);
+      formDataToSend.append('reorderPoint', formData.reorderPoint);
       
       if (imageFile) {
         formDataToSend.append('image', imageFile);
       }
 
       if (product) {
-        // Actualizar - agregar el campo active
         formDataToSend.append('active', formData.active);
-        
         await client.put(`/admin/products/${product.id}`, formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        alert('Producto actualizado exitosamente');
+        alert('✅ Producto actualizado exitosamente');
       } else {
-        // Crear nuevo
         await client.post('/admin/products', formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        alert('Producto creado exitosamente');
+        alert('✅ Producto creado exitosamente');
       }
 
       onSuccess();
     } catch (error) {
       console.error('Error completo:', error);
-      console.error('Respuesta del servidor:', error.response?.data);
-      
-      const errorMsg = error.response?.data?.message || 
-                      error.response?.data || 
-                      error.message || 
-                      'Error desconocido';
-      
-      alert('Error al guardar el producto: ' + errorMsg);
+      const errorMsg = error.response?.data?.message || error.response?.data || error.message || 'Error desconocido';
+      alert('❌ Error al guardar el producto: ' + errorMsg);
     } finally {
       setUploading(false);
     }
@@ -726,7 +700,7 @@ function ProductFormModal({ product, onClose, onSuccess }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content form-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{product ? 'Editar Producto' : 'Nuevo Producto'}</h3>
+          <h3>{product ? '✏️ Editar Producto' : '➕ Nuevo Producto'}</h3>
           <button className="btn-close" onClick={onClose}>✕</button>
         </div>
 
@@ -738,6 +712,7 @@ function ProductFormModal({ product, onClose, onSuccess }) {
               value={formData.nombre}
               onChange={(e) => setFormData({...formData, nombre: e.target.value})}
               required
+              placeholder="Nombre del producto"
             />
           </div>
 
@@ -747,6 +722,7 @@ function ProductFormModal({ product, onClose, onSuccess }) {
               value={formData.descripcion}
               onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
               rows="3"
+              placeholder="Descripción del producto"
             />
           </div>
 
@@ -760,6 +736,7 @@ function ProductFormModal({ product, onClose, onSuccess }) {
                 value={formData.precio}
                 onChange={(e) => setFormData({...formData, precio: e.target.value})}
                 required
+                placeholder="0.00"
               />
             </div>
 
@@ -771,51 +748,57 @@ function ProductFormModal({ product, onClose, onSuccess }) {
                 value={formData.stock}
                 onChange={(e) => setFormData({...formData, stock: e.target.value})}
                 required
+                placeholder="0"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Punto de Reorden</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.reorderPoint}
+                onChange={(e) => setFormData({...formData, reorderPoint: e.target.value})}
+                placeholder="10"
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label>Imagen del producto {product ? '(opcional - dejar vacío para mantener actual)' : ''}</label>
+            <label>Imagen del producto</label>
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => setImageFile(e.target.files[0])}
+              onChange={handleImageChange}
             />
             
-            {product?.imageUrl && !imageFile && (
-              <div className="current-image">
-                <p style={{fontSize: '12px', color: '#6b7280', marginTop: '5px'}}>
-                  Imagen actual: {product.imageUrl}
-                </p>
-                <img 
-                  src={`http://localhost:8080/api/images/products/${product.imageUrl}`}
-                  alt="Current"
-                  style={{maxWidth: '200px', marginTop: '10px', borderRadius: '8px'}}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.style.display = 'none';
-                  }}
-                />
+            {preview && (
+              <div className="image-preview">
+                <img src={preview} alt="Preview" />
               </div>
             )}
             
-            {imageFile && (
-              <p style={{fontSize: '12px', color: '#10b981', marginTop: '5px'}}>
-                ✅ Nueva imagen seleccionada: {imageFile.name}
-              </p>
+            {product?.imageUrl && !preview && (
+              <div className="current-image">
+                <p>Imagen actual:</p>
+                <img 
+                  src={`http://localhost:8080/api/images/products/${product.imageUrl}`}
+                  alt="Current"
+                  onError={(e) => e.target.style.display = 'none'}
+                />
+              </div>
             )}
           </div>
 
           {product && (
             <div className="form-group">
-              <label>
+              <label className="checkbox-label">
                 <input
                   type="checkbox"
                   checked={formData.active}
                   onChange={(e) => setFormData({...formData, active: e.target.checked})}
                 />
-                {' '}Producto activo
+                Producto activo
               </label>
             </div>
           )}
@@ -825,7 +808,7 @@ function ProductFormModal({ product, onClose, onSuccess }) {
               Cancelar
             </button>
             <button type="submit" disabled={uploading} className="btn-save">
-              {uploading ? 'Guardando...' : (product ? 'Actualizar' : 'Crear')}
+              {uploading ? '⏳ Guardando...' : (product ? '💾 Actualizar' : '➕ Crear')}
             </button>
           </div>
         </form>
@@ -833,6 +816,5 @@ function ProductFormModal({ product, onClose, onSuccess }) {
     </div>
   );
 }
-
 
 export default AdminDashboard;

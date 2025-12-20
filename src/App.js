@@ -43,7 +43,6 @@ function AppContent({ getRole, getToken, ProtectedRoute }) {
   const token = getToken();
   const role = getRole();
 
-  // Convertir rol a formato simple para NotificationCenter
   const getUserRole = () => {
     if (!role) return null;
     if (role === 'ROLE_ADMIN') return 'admin';
@@ -52,9 +51,23 @@ function AppContent({ getRole, getToken, ProtectedRoute }) {
     return 'vendedor';
   };
 
+  const getRoleName = () => {
+    if (role === 'ROLE_ADMIN') return '👨‍💼 Admin';
+    if (role === 'ROLE_OWNER') return '👑 Owner';
+    if (role === 'ROLE_VENDEDOR') return '🛒 Vendedor';
+    return '';
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('¿Cerrar sesión?')) {
+      localStorage.clear();
+      window.location.href = '/login';
+    }
+  };
+
   return (
     <div className="app">
-      {/* Header con notificaciones - Solo mostrar si NO es login y usuario está autenticado */}
+      {/* Header global - Solo si NO es login y usuario autenticado */}
       {!isLoginPage && token && (
         <header className="app-header">
           <div className="header-content">
@@ -65,24 +78,15 @@ function AppContent({ getRole, getToken, ProtectedRoute }) {
             
             <div className="header-right">
               <div className="user-info">
-                <span className="user-role">
-                  {role === 'ROLE_ADMIN' && '👨‍💼 Admin'}
-                  {role === 'ROLE_OWNER' && '👑 Owner'}
-                  {role === 'ROLE_VENDEDOR' && '🛒 Vendedor'}
-                </span>
+                <span className="user-role">{getRoleName()}</span>
+                <span className="user-name">{localStorage.getItem('username')}</span>
               </div>
               
               {/* Sistema de Notificaciones */}
               <NotificationCenter userRole={getUserRole()} />
               
-              <button 
-                className="btn-logout"
-                onClick={() => {
-                  localStorage.clear();
-                  window.location.href = '/login';
-                }}
-              >
-                Cerrar Sesión
+              <button className="btn-logout" onClick={handleLogout}>
+                🚪 Cerrar Sesión
               </button>
             </div>
           </div>
