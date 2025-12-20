@@ -221,28 +221,24 @@ function EditOrderModal({ order, onClose, onSuccess }) {
 
   const fetchData = async () => {
     try {
-      console.log('Cargando clientes y productos...');
-      
       const [clientsRes, productsRes] = await Promise.all([
         client.get('/admin/clients'),
         client.get('/admin/products')
       ]);
       
-      console.log('Clientes recibidos:', clientsRes.data);
-      console.log('Productos recibidos:', productsRes.data);
-      
       setClients(clientsRes.data);
       setProducts(productsRes.data);
       
-      // Inicializar items de la orden
-      const mappedItems = order.items.map(item => ({
+      // Inicializar items con índice único
+      const mappedItems = order.items.map((item, index) => ({
+        id: `item-${index}`,  // ID único temporal
         productId: item.productId,
         productName: item.productName,
         cantidad: item.cantidad,
         precioUnitario: item.precioUnitario
       }));
       
-      // Encontrar el cliente actual por nombre
+      // Encontrar cliente actual
       let currentClientId = null;
       if (order.cliente && order.cliente !== 'Sin cliente') {
         const foundClient = clientsRes.data.find(c => 
@@ -250,9 +246,6 @@ function EditOrderModal({ order, onClose, onSuccess }) {
         );
         if (foundClient) {
           currentClientId = foundClient.id;
-          console.log('Cliente encontrado:', foundClient);
-        } else {
-          console.warn('No se encontró el cliente:', order.cliente);
         }
       }
       
@@ -264,7 +257,6 @@ function EditOrderModal({ order, onClose, onSuccess }) {
       
     } catch (error) {
       console.error('Error al cargar datos:', error);
-      console.error('Detalles del error:', error.response?.data);
       alert('Error al cargar datos: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
@@ -295,8 +287,6 @@ function EditOrderModal({ order, onClose, onSuccess }) {
         })),
         notas: formData.notas || null
       };
-
-      console.log('Enviando actualización:', payload);
       
       await client.put(`/admin/orders/${order.id}`, payload);
       
@@ -304,7 +294,6 @@ function EditOrderModal({ order, onClose, onSuccess }) {
       onSuccess();
     } catch (error) {
       console.error('Error al actualizar orden:', error);
-      console.error('Respuesta del servidor:', error.response?.data);
       alert('Error al actualizar orden: ' + (error.response?.data?.message || error.message));
     }
   };
@@ -312,48 +301,55 @@ function EditOrderModal({ order, onClose, onSuccess }) {
   const addItem = (product) => {
     const existing = formData.items.find(i => i.productId === product.id);
     if (existing) {
-      setFormData({
-        ...formData,
-        items: formData.items.map(i =>
-          i.productId === product.id 
+      // Actualizar cantidad del item existente
+      setFormData(prev => ({
+        ...prev,
+        items: prev.items.map(i =>
+          i.id === existing.id  // Usar ID único, no productId
             ? {...i, cantidad: i.cantidad + 1} 
             : i
         )
-      });
+      }));
     } else {
-      setFormData({
-        ...formData,
-        items: [...formData.items, {
-          productId: product.id,
-          productName: product.nombre,
-          cantidad: 1,
-          precioUnitario: product.precio
-        }]
-      });
+      // Agregar nuevo item con ID único
+      const newItem = {
+        id: `item-${Date.now()}`,  // ID único temporal
+        productId: product.id,
+        productName: product.nombre,
+        cantidad: 1,
+        precioUnitario: product.precio
+      };
+      setFormData(prev => ({
+        ...prev,
+        items: [...prev.items, newItem]
+      }));
     }
   };
 
-  const removeItem = (productId) => {
-    setFormData({
-      ...formData,
-      items: formData.items.filter(i => i.productId !== productId)
-    });
+  const removeItem = (itemId) => {
+    setFormData(prev => ({
+      ...prev,
+      items: prev.items.filter(i => i.id !== itemId)
+    }));
   };
 
-  const updateQuantity = (productId, nuevaCantidad) => {
-    if (nuevaCantidad <= 0) {
-      removeItem(productId);
+  // ARREGLO PRINCIPAL: updateQuantity con ID único
+  const updateQuantity = (itemId, nuevaCantidad) => {
+    const cantidad = parseInt(nuevaCantidad);
+    
+    if (cantidad <= 0 || isNaN(cantidad)) {
+      removeItem(itemId);
       return;
     }
     
-    setFormData({
-      ...formData,
-      items: formData.items.map(i =>
-        i.productId === productId 
-          ? {...i, cantidad: parseInt(nuevaCantidad)} 
+    setFormData(prev => ({
+      ...prev,
+      items: prev.items.map(i =>
+        i.id === itemId  // Comparar por ID único, no por productId
+          ? {...i, cantidad: cantidad} 
           : i
       )
-    });
+    }));
   };
 
   if (loading) {
@@ -377,23 +373,17 @@ function EditOrderModal({ order, onClose, onSuccess }) {
         <form onSubmit={handleSubmit} className="edit-order-form">
           <div className="form-section">
             <h4>Cliente</h4>
-            {clients.length === 0 ? (
-              <p style={{color: '#dc2626', fontSize: '14px'}}>
-                ⚠️ No hay clientes disponibles
-              </p>
-            ) : (
-              <select 
-                value={formData.clientId || ''}
-                onChange={(e) => setFormData({...formData, clientId: e.target.value || null})}
-              >
-                <option value="">Sin cliente</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre} - {c.telefono}
-                  </option>
-                ))}
-              </select>
-            )}
+            <select 
+              value={formData.clientId || ''}
+              onChange={(e) => setFormData(prev => ({...prev, clientId: e.target.value || null}))}
+            >
+              <option value="">Sin cliente</option>
+              {clients.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre} - {c.telefono}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-section">
@@ -404,32 +394,32 @@ function EditOrderModal({ order, onClose, onSuccess }) {
               </p>
             ) : (
               <div className="order-items-list">
-                {formData.items.map((item, index) => (
-                  <div key={item.productId || index} className="edit-item">
+                {formData.items.map((item) => (
+                  <div key={item.id} className="edit-item">
                     <span>{item.productName}</span>
                     <div className="item-controls">
                       <button 
                         type="button" 
-                        onClick={() => updateQuantity(item.productId, item.cantidad - 1)}
+                        onClick={() => updateQuantity(item.id, item.cantidad - 1)}
                       >
                         -
                       </button>
                       <input 
                         type="number"
                         value={item.cantidad}
-                        onChange={(e) => updateQuantity(item.productId, parseInt(e.target.value) || 1)}
+                        onChange={(e) => updateQuantity(item.id, e.target.value)}
                         min="1"
                       />
                       <button 
                         type="button" 
-                        onClick={() => updateQuantity(item.productId, item.cantidad + 1)}
+                        onClick={() => updateQuantity(item.id, item.cantidad + 1)}
                       >
                         +
                       </button>
                       <button 
                         type="button" 
                         className="btn-remove-item" 
-                        onClick={() => removeItem(item.productId)}
+                        onClick={() => removeItem(item.id)}
                       >
                         🗑️
                       </button>
@@ -445,31 +435,25 @@ function EditOrderModal({ order, onClose, onSuccess }) {
 
           <div className="form-section">
             <h4>Agregar más productos</h4>
-            {products.length === 0 ? (
-              <p style={{color: '#dc2626', fontSize: '14px'}}>
-                ⚠️ No hay productos disponibles
-              </p>
-            ) : (
-              <div className="products-quick-add">
-                {products.filter(p => p.active).map(product => (
-                  <button 
-                    key={product.id}
-                    type="button"
-                    className="btn-quick-add"
-                    onClick={() => addItem(product)}
-                  >
-                    + {product.nombre} (${parseFloat(product.precio).toFixed(2)})
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="products-quick-add">
+              {products.filter(p => p.active).map(product => (
+                <button 
+                  key={product.id}
+                  type="button"
+                  className="btn-quick-add"
+                  onClick={() => addItem(product)}
+                >
+                  + {product.nombre} (${parseFloat(product.precio).toFixed(2)})
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="form-section">
             <h4>Notas</h4>
             <textarea
               value={formData.notas}
-              onChange={(e) => setFormData({...formData, notas: e.target.value})}
+              onChange={(e) => setFormData(prev => ({...prev, notas: e.target.value}))}
               rows="3"
               placeholder="Notas adicionales sobre la orden..."
             />
@@ -488,7 +472,6 @@ function EditOrderModal({ order, onClose, onSuccess }) {
     </div>
   );
 }
-
 
 
 
