@@ -265,13 +265,7 @@ const handlePreviewInvoice = async (orderId) => {
                   >
                     👁️ Ver PDF
                   </button>
-                  <button 
-                    className="btn-invoice btn-print"
-                    onClick={() => handlePrintInvoice(order.id)}
-                    title="Abrir e imprimir directamente"
-                  >
-                    🖨️ Imprimir
-                  </button>
+        
                   <button 
                     className="btn-invoice btn-download"
                     onClick={() => handleDownloadInvoice(order.id)}
@@ -343,60 +337,79 @@ function EditOrderModal({ order, onClose, onSuccess }) {
     notas: order.notas || ''
   });
   const [loading, setLoading] = useState(true);
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const [clientsRes, productsRes] = await Promise.all([
-        client.get('/admin/clients'),
-        client.get('/admin/products')
-      ]);
+const fetchData = async () => {
+  try {
+    const [clientsRes, productsRes] = await Promise.all([
+      client.get('/admin/clients'),
+      client.get('/admin/products')
+    ]);
+    
+    setClients(clientsRes.data);
+    setProducts(productsRes.data);
+    
+    // ✅ DEBUG: Ver estructura de la orden
+    console.log('🔍 Orden completa:', order);
+    console.log('🔍 Items de la orden:', order.items);
+    
+    // ✅ MAPEO CORRECTO: Verificar qué campo tiene el ID del producto
+    const mappedItems = order.items.map((item, index) => {
+      console.log('🔍 Item original:', item);
       
-      setClients(clientsRes.data);
-      setProducts(productsRes.data);
-      
-      // Inicializar items con ID único
-      const mappedItems = order.items.map((item, index) => ({
+      return {
         id: `item-${Date.now()}-${index}`,
-        productId: item.productId,
-        productName: item.productName,
+        productId: item.productId || item.product?.id || item.id,  // ← MÚLTIPLES OPCIONES
+        productName: item.productName || item.product?.nombre || 'Producto desconocido',
         cantidad: item.cantidad,
-        precioUnitario: parseFloat(item.precioUnitario)
-      }));
-      
-      // Encontrar cliente actual
-      let currentClientId = null;
-      if (order.cliente && order.cliente !== 'Sin cliente') {
-        const foundClient = clientsRes.data.find(c => 
-          c.nombre.toLowerCase() === order.cliente.toLowerCase()
-        );
-        if (foundClient) {
-          currentClientId = foundClient.id;
-        }
+        precioUnitario: parseFloat(item.precioUnitario || item.precio || 0)
+      };
+    });
+    
+    console.log('✅ Items mapeados:', mappedItems);
+    
+    // Encontrar cliente actual
+    let currentClientId = null;
+    if (order.cliente && order.cliente !== 'Sin cliente') {
+      const foundClient = clientsRes.data.find(c => 
+        c.nombre.toLowerCase() === order.cliente.toLowerCase()
+      );
+      if (foundClient) {
+        currentClientId = foundClient.id;
       }
-      
-      setFormData({
-        clientId: currentClientId,
-        items: mappedItems,
-        notas: order.notas || ''
-      });
-      
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-      alert('Error al cargar datos: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    setFormData({
+      clientId: currentClientId,
+      items: mappedItems,
+      notas: order.notas || ''
+    });
+    
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+    alert('Error al cargar datos: ' + (error.response?.data?.message || error.message));
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // ✅ VALIDAR QUE HAYA PRODUCTOS
     if (formData.items.length === 0) {
       alert('❌ Debe haber al menos un producto en la orden');
+      return;
+    }
+
+    // ✅ VALIDAR QUE HAYA CAMBIOS
+    if (!hasChanges) {
+      alert('ℹ️ No se han realizado cambios en la orden');
       return;
     }
 
@@ -406,6 +419,9 @@ function EditOrderModal({ order, onClose, onSuccess }) {
       alert('❌ No hay productos válidos en la orden');
       return;
     }
+
+
+  
     
     try {
       const payload = {
@@ -416,6 +432,10 @@ function EditOrderModal({ order, onClose, onSuccess }) {
         })),
         notas: formData.notas || null
       };
+
+      console.log('📦 Payload a enviar:', payload);
+      console.log('📊 Items en formData:', formData.items);
+      console.log('✅ Items válidos:', validItems);
       
       await client.put(`/admin/orders/${order.id}`, payload);
       alert('✅ Orden actualizada correctamente');
@@ -426,26 +446,55 @@ function EditOrderModal({ order, onClose, onSuccess }) {
     }
   };
 
-  const addItem = (product) => {
-    const existing = formData.items.find(i => i.productId === product.id);
-    if (existing) {
-      updateQuantity(existing.id, existing.cantidad + 1);
-    } else {
-      const newItem = {
-        id: `item-${Date.now()}-${Math.random()}`,
-        productId: product.id,
-        productName: product.nombre,
-        cantidad: 1,
-        precioUnitario: parseFloat(product.precio)
-      };
-      setFormData(prev => ({
-        ...prev,
-        items: [...prev.items, newItem]
-      }));
+const addItem = (product) => {
+  setHasChanges(true);
+  
+  // ✅ BUSCAR POR productId (no por id interno)
+  const existing = formData.items.find(i => i.productId === product.id);
+  
+  if (existing) {
+    // ✅ Producto ya existe en la orden - INCREMENTAR cantidad
+    const currentQty = existing.cantidad;
+    
+    // Validar stock disponible
+    if (currentQty >= product.stock) {
+      alert(`⚠️ Stock insuficiente. Solo hay ${product.stock} unidades disponibles de ${product.nombre}`);
+      return;
     }
-  };
+    
+    // Incrementar cantidad del item existente
+    setFormData(prev => ({
+      ...prev,
+      items: prev.items.map(i =>
+        i.productId === product.id 
+          ? {...i, cantidad: i.cantidad + 1} 
+          : i
+      )
+    }));
+    
+    console.log(`✅ Incrementado ${product.nombre} a ${currentQty + 1} unidades`);
+  } else {
+    // ✅ Producto NO existe - AGREGAR nuevo
+    const newItem = {
+      id: `item-${Date.now()}-${Math.random()}`,
+      productId: product.id,
+      productName: product.nombre,
+      cantidad: 1,
+      precioUnitario: parseFloat(product.precio)
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      items: [...prev.items, newItem]
+    }));
+    
+    console.log(`✅ Agregado nuevo producto: ${product.nombre}`);
+  }
+};
+
 
   const removeItem = (itemId) => {
+    setHasChanges(true);
     setFormData(prev => ({
       ...prev,
       items: prev.items.filter(i => i.id !== itemId)
@@ -453,6 +502,7 @@ function EditOrderModal({ order, onClose, onSuccess }) {
   };
 
   const updateQuantity = (itemId, nuevaCantidad) => {
+    setHasChanges(true);
     const cantidad = parseInt(nuevaCantidad);
     
     if (cantidad <= 0 || isNaN(cantidad)) {
@@ -497,7 +547,10 @@ function EditOrderModal({ order, onClose, onSuccess }) {
             <h4>👤 Cliente</h4>
             <select 
               value={formData.clientId || ''}
-              onChange={(e) => setFormData(prev => ({...prev, clientId: e.target.value || null}))}
+              onChange={(e) => {
+                setHasChanges(true);
+                setFormData(prev => ({...prev, clientId: e.target.value || null}));
+              }}
               className="form-select"
             >
               <option value="">Sin cliente</option>
@@ -564,28 +617,40 @@ function EditOrderModal({ order, onClose, onSuccess }) {
             )}
           </div>
 
+          {/* ✅ SECCIÓN MEJORADA: Solo productos con stock */}
           <div className="form-section">
             <h4>➕ Agregar más productos</h4>
             <div className="products-quick-add">
-              {products.filter(p => p.active).map(product => (
-                <button 
-                  key={product.id}
-                  type="button"
-                  className="btn-quick-add"
-                  onClick={() => addItem(product)}
-                  title={`Stock disponible: ${product.stock}`}
-                >
-                  + {product.nombre} (${parseFloat(product.precio).toFixed(2)})
-                </button>
-              ))}
+              {products
+                .filter(p => p.active && p.stock > 0) // ✅ SOLO PRODUCTOS CON STOCK
+                .map(product => (
+                  <button 
+                    key={product.id}
+                    type="button"
+                    className="btn-quick-add"
+                    onClick={() => addItem(product)}
+                    title={`Stock disponible: ${product.stock}`}
+                  >
+                    + {product.nombre} (${parseFloat(product.precio).toFixed(2)}) 
+                    <span className="stock-badge">📦 {product.stock}</span>
+                  </button>
+                ))}
             </div>
+            {products.filter(p => p.active && p.stock > 0).length === 0 && (
+              <p className="no-products-available">
+                ⚠️ No hay productos disponibles con stock
+              </p>
+            )}
           </div>
 
           <div className="form-section">
             <h4>📝 Notas</h4>
             <textarea
               value={formData.notas}
-              onChange={(e) => setFormData(prev => ({...prev, notas: e.target.value}))}
+              onChange={(e) => {
+                setHasChanges(true);
+                setFormData(prev => ({...prev, notas: e.target.value}));
+              }}
               rows="3"
               placeholder="Notas adicionales sobre la orden..."
               className="form-textarea"
@@ -596,7 +661,11 @@ function EditOrderModal({ order, onClose, onSuccess }) {
             <button type="button" onClick={onClose} className="btn-cancel">
               Cancelar
             </button>
-            <button type="submit" className="btn-save" disabled={formData.items.length === 0}>
+            <button 
+              type="submit" 
+              className="btn-save" 
+              disabled={formData.items.length === 0 || !hasChanges}
+            >
               💾 Guardar Cambios
             </button>
           </div>
@@ -605,6 +674,7 @@ function EditOrderModal({ order, onClose, onSuccess }) {
     </div>
   );
 }
+
 
 // ============================================
 // PANEL DE PRODUCTOS MEJORADO
