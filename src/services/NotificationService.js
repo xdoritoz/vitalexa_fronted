@@ -19,13 +19,21 @@ class NotificationService {
 
     console.log(`🔌 Conectando WebSocket como ${userRole}...`);
 
-    const socket = new SockJS('http://localhost:8080/ws');
+    console.log('🔍 process.env.REACT_APP_WS_URL:', process.env.REACT_APP_WS_URL);
+    console.log('🔍 process.env.NODE_ENV:', process.env.NODE_ENV);
+
+    // 🔥 Usar variable de entorno, con fallback a localhost para desarrollo
+    const WS_URL = process.env.REACT_APP_WS_URL || 'http://localhost:8080/ws';
+    console.log('🔍 WebSocket URL:', WS_URL);
+
+    const socket = new SockJS(WS_URL);
     this.stompClient = Stomp.over(socket);
 
     // Desactivar logs de debug en producción
     this.stompClient.debug = (msg) => {
-      // Comentar esta línea en producción
-      // console.log('STOMP:', msg);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('STOMP:', msg);
+      }
     };
 
     this.stompClient.connect(
