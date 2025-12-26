@@ -14,13 +14,13 @@ function AdminDashboard() {
           className={activeTab === 'orders' ? 'active' : ''}
           onClick={() => setActiveTab('orders')}
         >
-          <span className="material-icons-round">assignment</span> Orders
+          <span className="material-icons-round">assignment</span> Órdenes
         </button>
         <button
           className={activeTab === 'products' ? 'active' : ''}
           onClick={() => setActiveTab('products')}
         >
-          <span className="material-icons-round">inventory_2</span> Products
+          <span className="material-icons-round">inventory_2</span> Productos
         </button>
       </nav>
 
@@ -157,32 +157,32 @@ function OrdersPanel() {
   return (
     <div className="orders-panel">
       <div className="panel-header">
-        <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>assignment_turned_in</span> Orders Management</h2>
+        <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>assignment_turned_in</span> Gestión de Órdenes</h2>
         <div className="filter-buttons">
           <button
             className={filter === 'pending' ? 'active' : ''}
             onClick={() => setFilter('pending')}
           >
-            <span className="material-icons-round">pending_actions</span> Pending ({orders.filter(o => o.estado === 'PENDIENTE' || o.estado === 'CONFIRMADO').length})
+            <span className="material-icons-round">pending_actions</span> Pendientes ({orders.filter(o => o.estado === 'PENDIENTE' || o.estado === 'CONFIRMADO').length})
           </button>
           <button
             className={filter === 'completed' ? 'active' : ''}
             onClick={() => setFilter('completed')}
           >
-            <span className="material-icons-round">check_circle</span> Completed ({orders.filter(o => o.estado === 'COMPLETADO').length})
+            <span className="material-icons-round">check_circle</span> Completadas ({orders.filter(o => o.estado === 'COMPLETADO').length})
           </button>
           <button
             className={filter === 'all' ? 'active' : ''}
             onClick={() => setFilter('all')}
           >
-            <span className="material-icons-round">analytics</span> All ({orders.length})
+            <span className="material-icons-round">analytics</span> Todas ({orders.length})
           </button>
         </div>
       </div>
 
       {filteredOrders.length === 0 ? (
         <div className="empty-state">
-          <p><span className="material-icons-round" style={{ fontSize: '48px', color: 'var(--text-muted)' }}>inbox</span><br />No orders found in this category</p>
+          <p><span className="material-icons-round" style={{ fontSize: '48px', color: 'var(--text-muted)' }}>inbox</span><br />No se encontraron órdenes en esta categoría</p>
         </div>
       ) : (
         <div className="orders-grid">
@@ -203,7 +203,7 @@ function OrdersPanel() {
 
                 {order.notas && (
                   <div className="order-notes">
-                    <strong><span className="material-icons-round" style={{ fontSize: '16px', verticalAlign: 'middle' }}>note</span> Notes:</strong>
+                    <strong><span className="material-icons-round" style={{ fontSize: '16px', verticalAlign: 'middle' }}>note</span> Notas:</strong>
                     <p>{order.notas}</p>
                   </div>
                 )}
@@ -233,7 +233,7 @@ function OrdersPanel() {
                     onClick={() => handlePreviewInvoice(order.id)}
                     title="Ver factura en nueva pestaña"
                   >
-                    <span className="material-icons-round">visibility</span> Preview
+                    <span className="material-icons-round">visibility</span> Vista Previa
                   </button>
 
                   <button
@@ -242,7 +242,7 @@ function OrdersPanel() {
                     disabled={downloadingPdf === order.id}
                     title="Descargar archivo PDF"
                   >
-                    {downloadingPdf === order.id ? <span className="material-icons-round spin">sync</span> : <span className="material-icons-round">download</span>} Download
+                    {downloadingPdf === order.id ? <span className="material-icons-round spin">sync</span> : <span className="material-icons-round">download</span>} Descargar
                   </button>
                 </div>
               </div>
@@ -254,7 +254,7 @@ function OrdersPanel() {
                     className="btn-confirm"
                     onClick={() => changeStatus(order.id, 'CONFIRMADO')}
                   >
-                    <span className="material-icons-round">check</span> Confirm
+                    <span className="material-icons-round">check</span> Confirmar
                   </button>
                 )}
 
@@ -264,13 +264,13 @@ function OrdersPanel() {
                       className="btn-edit"
                       onClick={() => setSelectedOrder(order)}
                     >
-                      <span className="material-icons-round">edit</span> Edit
+                      <span className="material-icons-round">edit</span> Editar
                     </button>
                     <button
                       className="btn-complete"
                       onClick={() => changeStatus(order.id, 'COMPLETADO')}
                     >
-                      <span className="material-icons-round">done_all</span> Complete
+                      <span className="material-icons-round">done_all</span> Completar
                     </button>
                   </>
                 )}
@@ -510,7 +510,7 @@ function EditOrderWindow({ order, onClose, onSuccess }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content-large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3><span className="material-icons-round">edit_note</span> Edit Order #{order.id.substring(0, 8)}</h3>
+          <h3><span className="material-icons-round">edit_note</span> Editar Orden #{order.id.substring(0, 8)}</h3>
           <button className="btn-close" onClick={onClose}><span className="material-icons-round">close</span></button>
         </div>
 
@@ -538,7 +538,7 @@ function EditOrderWindow({ order, onClose, onSuccess }) {
             <h4>🛒 Productos en la orden</h4>
             {formData.items.length === 0 ? (
               <div className="alert-warning">
-                <span className="material-icons-round">warning</span> No items in order. Add at least one.
+                <span className="material-icons-round">warning</span> La orden debe tener al menos un producto.
               </div>
             ) : (
               <div className="order-items-list">
@@ -610,7 +610,7 @@ function EditOrderWindow({ order, onClose, onSuccess }) {
             </div>
             {products.filter(p => p.active && p.stock > 0).length === 0 && (
               <p className="no-products-available">
-                <span className="material-icons-round">block</span> No products available in stock
+                <span className="material-icons-round">block</span> No hay productos disponibles en stock
               </p>
             )}
           </div>
@@ -638,7 +638,7 @@ function EditOrderWindow({ order, onClose, onSuccess }) {
               className="btn-save"
               disabled={formData.items.length === 0 || !hasChanges}
             >
-              <span className="material-icons-round">save</span> Save Changes
+              <span className="material-icons-round">save</span> Guardar Cambios
             </button>
           </div>
         </form>
@@ -718,7 +718,7 @@ function ProductsPanel() {
   return (
     <div className="products-panel">
       <div className="panel-header">
-        <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>inventory</span> Product Management</h2>
+        <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>inventory</span> Gestión de Productos</h2>
         <div className="header-actions">
           <input
             type="text"
@@ -741,7 +741,7 @@ function ProductsPanel() {
 
       {filteredProducts.length === 0 ? (
         <div className="empty-state">
-          <p><span className="material-icons-round" style={{ fontSize: '48px', color: 'var(--text-muted)' }}>search_off</span><br />No products found</p>
+          <p><span className="material-icons-round" style={{ fontSize: '48px', color: 'var(--text-muted)' }}>search_off</span><br />No se encontraron productos</p>
         </div>
       ) : (
         <div className="products-grid">
@@ -768,7 +768,7 @@ function ProductsPanel() {
                   </span>
                 </div>
                 <span className={`product-status ${product.active ? 'active' : 'inactive'}`}>
-                  {product.active ? <><span className="material-icons-round" style={{ fontSize: '14px' }}>check_circle</span> Active</> : <><span className="material-icons-round" style={{ fontSize: '14px' }}>cancel</span> Inactive</>}
+                  {product.active ? <><span className="material-icons-round" style={{ fontSize: '14px' }}>check_circle</span> Activo</> : <><span className="material-icons-round" style={{ fontSize: '14px' }}>cancel</span> Inactivo</>}
                 </span>
               </div>
 

@@ -86,8 +86,8 @@ function OwnerDashboard() {
   return (
     <div className="owner-dashboard">
       <header className="dashboard-header">
-        <h1><span className="material-icons-round" style={{ fontSize: '32px', verticalAlign: 'middle', color: '#fbbf24' }}>verified_user</span> Owner Panel</h1>
-        <p>Complete business overview</p>
+        <h1><span className="material-icons-round" style={{ fontSize: '32px', verticalAlign: 'middle', color: '#fbbf24' }}>verified_user</span> Panel de Dueño</h1>
+        <p>Visión general del negocio</p>
       </header>
 
       <nav className="dashboard-tabs">
@@ -95,19 +95,19 @@ function OwnerDashboard() {
           className={activeTab === 'overview' ? 'active' : ''}
           onClick={() => setActiveTab('overview')}
         >
-          <span className="material-icons-round">dashboard</span> Overview
+          <span className="material-icons-round">dashboard</span> Resumen
         </button>
         <button
           className={activeTab === 'orders' ? 'active' : ''}
           onClick={() => setActiveTab('orders')}
         >
-          <span className="material-icons-round">inventory</span> Orders ({stats?.totalOrders || 0})
+          <span className="material-icons-round">inventory</span> Órdenes ({stats?.totalOrders || 0})
         </button>
         <button
           className={activeTab === 'products' ? 'active' : ''}
           onClick={() => setActiveTab('products')}
         >
-          <span className="material-icons-round">store</span> Products ({stats?.totalProducts || 0})
+          <span className="material-icons-round">store</span> Productos ({stats?.totalProducts || 0})
         </button>
         <button
           className={activeTab === 'metas' ? 'active' : ''}
@@ -139,7 +139,7 @@ function OwnerDashboard() {
             toast={toast}
           />
         )}
-        {activeTab === 'reports' && <ReportsTab orders={orders} products={products} />}
+        {activeTab === 'reports' && <ReportsTab orders={orders} products={products} vendedores={vendedores} />}
       </div>
 
       {selectedOrder && (
@@ -160,7 +160,7 @@ function OverviewTab({ stats }) {
         <div className="stat-card revenue">
           <div className="stat-icon"><span className="material-icons-round">payments</span></div>
           <div className="stat-info">
-            <h3>Total Revenue</h3>
+            <h3>Ingresos Totales</h3>
             <p className="stat-value">${stats?.totalRevenue?.toFixed(2) || '0.00'}</p>
           </div>
         </div>
@@ -168,16 +168,16 @@ function OverviewTab({ stats }) {
         <div className="stat-card orders">
           <div className="stat-icon"><span className="material-icons-round">shopping_bag</span></div>
           <div className="stat-info">
-            <h3>Completed Orders</h3>
+            <h3>Órdenes Completadas</h3>
             <p className="stat-value">{stats?.completedOrders || 0}</p>
-            <span className="stat-subtitle">of {stats?.totalOrders || 0} total</span>
+            <span className="stat-subtitle">de {stats?.totalOrders || 0} total</span>
           </div>
         </div>
 
         <div className="stat-card pending">
           <div className="stat-icon"><span className="material-icons-round">hourglass_top</span></div>
           <div className="stat-info">
-            <h3>Pending Orders</h3>
+            <h3>Órdenes Pendientes</h3>
             <p className="stat-value">{stats?.pendingOrders || 0}</p>
           </div>
         </div>
@@ -185,9 +185,9 @@ function OverviewTab({ stats }) {
         <div className="stat-card products">
           <div className="stat-icon"><span className="material-icons-round">inventory_2</span></div>
           <div className="stat-info">
-            <h3>Active Products</h3>
+            <h3>Productos Activos</h3>
             <p className="stat-value">{stats?.activeProducts || 0}</p>
-            <span className="stat-subtitle">of {stats?.totalProducts || 0} total</span>
+            <span className="stat-subtitle">de {stats?.totalProducts || 0} total</span>
           </div>
         </div>
 
@@ -195,9 +195,9 @@ function OverviewTab({ stats }) {
           <div className="stat-card warning">
             <div className="stat-icon"><span className="material-icons-round">warning_amber</span></div>
             <div className="stat-info">
-              <h3>Low Stock</h3>
+              <h3>Stock Bajo</h3>
               <p className="stat-value">{stats.lowStockProducts}</p>
-              <span className="stat-subtitle">products need restock</span>
+              <span className="stat-subtitle">productos necesitan reabastecimiento</span>
             </div>
           </div>
         )}
@@ -226,25 +226,25 @@ function OrdersTab({ orders }) {
   return (
     <div className="orders-section">
       <div className="orders-header">
-        <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>assignment</span> Orders Management</h2>
+        <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>assignment</span> Gestión de Órdenes</h2>
         <div className="filter-tabs">
           <button
             className={filter === 'pending' ? 'active' : ''}
             onClick={() => setFilter('pending')}
           >
-            <span className="material-icons-round">pending_actions</span> Pending ({orders.filter(o => o.estado === 'PENDIENTE' || o.estado === 'CONFIRMADO').length})
+            <span className="material-icons-round">pending_actions</span> Pendientes ({orders.filter(o => o.estado === 'PENDIENTE' || o.estado === 'CONFIRMADO').length})
           </button>
           <button
             className={filter === 'completed' ? 'active' : ''}
             onClick={() => setFilter('completed')}
           >
-            <span className="material-icons-round">check_circle</span> Completed ({orders.filter(o => o.estado === 'COMPLETADO').length})
+            <span className="material-icons-round">check_circle</span> Completadas ({orders.filter(o => o.estado === 'COMPLETADO').length})
           </button>
           <button
             className={filter === 'all' ? 'active' : ''}
             onClick={() => setFilter('all')}
           >
-            <span className="material-icons-round">analytics</span> All ({orders.length})
+            <span className="material-icons-round">analytics</span> Todas ({orders.length})
           </button>
         </div>
       </div>
@@ -252,7 +252,7 @@ function OrdersTab({ orders }) {
       <div className="orders-grid">
         {filteredOrders.length === 0 ? (
           <div className="empty-state">
-            <p><span className="material-icons-round" style={{ fontSize: '48px', color: 'var(--text-muted)' }}>search_off</span> No orders found</p>
+            <p><span className="material-icons-round" style={{ fontSize: '48px', color: 'var(--text-muted)' }}>search_off</span> No se encontraron órdenes</p>
           </div>
         ) : (
           filteredOrders.map(order => (
@@ -319,7 +319,7 @@ function ProductsTab({ products }) {
   return (
     <div className="products-tab">
       <div className="tab-header">
-        <h2>Product Inventory</h2>
+        <h2>Inventario de Productos</h2>
         <div className="filter-buttons">
           <button
             className={filter === 'all' ? 'active' : ''}
@@ -377,7 +377,7 @@ function ProductsTab({ products }) {
 
               <div className="product-status">
                 <span className={`badge ${product.active ? 'active' : 'inactive'}`}>
-                  {product.active ? <><span className="material-icons-round">check_circle</span> Active</> : <><span className="material-icons-round">cancel</span> Inactive</>}
+                  {product.active ? <><span className="material-icons-round">check_circle</span> Activo</> : <><span className="material-icons-round">cancel</span> Inactivo</>}
                 </span>
               </div>
             </div>
@@ -389,7 +389,7 @@ function ProductsTab({ products }) {
 }
 
 // ===== REPORTS TAB =====
-function ReportsTab({ orders, products }) {
+function ReportsTab({ orders, products, vendedores }) {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({
@@ -624,7 +624,7 @@ function ReportsTab({ orders, products }) {
             <ProductsReport data={reportData.productReport} />
           </>
         )}
-        {activeReportTab === 'vendors' && <VendorsReport data={reportData.vendorReport} />}
+        {activeReportTab === 'vendors' && <VendorsReport data={reportData.vendorReport} vendedores={vendedores} />}
         {activeReportTab === 'clients' && (
           <>
             <div className="export-specific">
@@ -913,12 +913,12 @@ function ProductsReport({ data }) {
 }
 
 // ===== VENDORS REPORT =====
-function VendorsReport({ data }) {
+function VendorsReport({ data, vendedores }) {
   return (
     <div className="vendors-report">
       <div className="report-header-stat">
         <h3>Total de Vendedores</h3>
-        <p className="big-stat">{data.totalVendors}</p>
+        <p className="big-stat">{vendedores ? vendedores.length : data.totalVendors}</p>
       </div>
 
       <div className="top-vendors-section">

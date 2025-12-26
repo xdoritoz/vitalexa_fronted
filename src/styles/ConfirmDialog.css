@@ -6,13 +6,12 @@
     backdrop-filter: blur(4px);
     z-index: 9998;
     animation: fadeIn 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .confirm-dialog {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     background: white;
     border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -20,6 +19,7 @@
     max-width: 500px;
     z-index: 9999;
     animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
 }
 
 @keyframes fadeIn {
@@ -35,12 +35,12 @@
 @keyframes slideUp {
     from {
         opacity: 0;
-        transform: translate(-50%, -45%);
+        transform: translateY(20px) scale(0.95);
     }
 
     to {
         opacity: 1;
-        transform: translate(-50%, -50%);
+        transform: translateY(0) scale(1);
     }
 }
 

@@ -22,37 +22,37 @@ function VendedorDashboard() {
           className={activeTab === 'nueva-venta' ? 'active' : ''}
           onClick={() => setActiveTab('nueva-venta')}
         >
-          <span className="material-icons-round">add_shopping_cart</span> New Sale
+          <span className="material-icons-round">add_shopping_cart</span> Nueva Venta
         </button>
         <button
           className={activeTab === 'mis-ventas' ? 'active' : ''}
           onClick={() => setActiveTab('mis-ventas')}
         >
-          <span className="material-icons-round">receipt_long</span> My Sales
+          <span className="material-icons-round">receipt_long</span> Mis Ventas
         </button>
         <button
           className={activeTab === 'ventas-completadas' ? 'active' : ''}
           onClick={() => setActiveTab('ventas-completadas')}
         >
-          <span className="material-icons-round">check_circle</span> Completed
+          <span className="material-icons-round">check_circle</span> Completadas
         </button>
         <button
           className={activeTab === 'mis-metas' ? 'active' : ''}
           onClick={() => setActiveTab('mis-metas')}
         >
-          <span className="material-icons-round">show_chart</span> My Goals
+          <span className="material-icons-round">show_chart</span> Mis Metas
         </button>
         <button
           className={activeTab === 'clientes' ? 'active' : ''}
           onClick={() => setActiveTab('clientes')}
         >
-          <span className="material-icons-round">people</span> Clients
+          <span className="material-icons-round">people</span> Clientes
         </button>
         <button
           className={activeTab === 'productos' ? 'active' : ''}
           onClick={() => setActiveTab('productos')}
         >
-          <span className="material-icons-round">inventory_2</span> Products
+          <span className="material-icons-round">inventory_2</span> Productos
         </button>
       </nav>
 
@@ -200,7 +200,7 @@ function NuevaVentaPanel() {
 
   return (
     <div className="nueva-venta-panel">
-      <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>add_shopping_cart</span> New Sale</h2>
+      <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>add_shopping_cart</span> Nueva Venta</h2>
 
       <div className="venta-layout">
         {/* ✅ SECCIÓN IZQUIERDA - PRODUCTOS CON IMÁGENES CORREGIDAS */}
@@ -285,7 +285,7 @@ function NuevaVentaPanel() {
               style={{ fontSize: '13px' }}
             />
             <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '5px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span className="material-icons-round" style={{ fontSize: '14px' }}>lightbulb</span> Use this field for out-of-stock requests or special instructions
+              <span className="material-icons-round" style={{ fontSize: '14px' }}>lightbulb</span> Use este campo para solicitudes sin stock o instrucciones especiales
             </small>
           </div>
 
@@ -372,7 +372,7 @@ function VentasCompletadasPanel() {
 
   return (
     <div className="ventas-completadas-panel">
-      <h2><span className="material-icons-round" style={{ color: 'var(--success)', verticalAlign: 'middle' }}>check_circle</span> Completed Sales</h2>
+      <h2><span className="material-icons-round" style={{ color: 'var(--success)', verticalAlign: 'middle' }}>check_circle</span> Ventas Completadas</h2>
 
       {orders.length === 0 ? (
         <div className="empty-state">
@@ -385,7 +385,7 @@ function VentasCompletadasPanel() {
               <div className="venta-header">
                 <span className="venta-id">#{order.id.substring(0, 8)}</span>
                 <span className="venta-status status-completado">
-                  <span className="material-icons-round" style={{ fontSize: '14px' }}>check_circle</span> COMPLETED
+                  <span className="material-icons-round" style={{ fontSize: '14px' }}>check_circle</span> COMPLETADO
                 </span>
               </div>
 
@@ -450,7 +450,7 @@ function ClientesPanel() {
   return (
     <div className="clientes-panel">
       <div className="panel-header">
-        <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>people</span> Clients</h2>
+        <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>people</span> Clientes</h2>
         <button className="btn-add" onClick={() => setShowModal(true)}>
           + Nuevo Cliente
         </button>
@@ -462,9 +462,9 @@ function ClientesPanel() {
             <h3>{cliente.nombre}</h3>
             <p><span className="material-icons-round" style={{ fontSize: '16px', verticalAlign: 'middle' }}>email</span> {cliente.email}</p>
             <p><span className="material-icons-round" style={{ fontSize: '16px', verticalAlign: 'middle' }}>phone</span> {cliente.telefono}</p>
-            <p><span className="material-icons-round" style={{ fontSize: '16px', verticalAlign: 'middle' }}>place</span> {cliente.direccion || 'No address'}</p>
+            <p><span className="material-icons-round" style={{ fontSize: '16px', verticalAlign: 'middle' }}>place</span> {cliente.direccion || 'Sin dirección'}</p>
             <div className="cliente-stats">
-              <span><span className="material-icons-round" style={{ fontSize: '16px', verticalAlign: 'middle' }}>shopping_bag</span> Purchases: ${parseFloat(cliente.totalCompras || 0).toFixed(2)}</span>
+              <span><span className="material-icons-round" style={{ fontSize: '16px', verticalAlign: 'middle' }}>shopping_bag</span> Compras: ${parseFloat(cliente.totalCompras || 0).toFixed(2)}</span>
             </div>
           </div>
         ))}
@@ -605,7 +605,7 @@ function MisVentasPanel() {
 
   return (
     <div className="mis-ventas-panel">
-      <h2><span className="material-icons-round" style={{ verticalAlign: 'middle' }}>receipt_long</span> My Sales (In Progress)</h2>
+      <h2><span className="material-icons-round" style={{ verticalAlign: 'middle' }}>receipt_long</span> Mis Ventas (En Progreso)</h2>
 
       {orders.length === 0 ? (
         <div className="empty-state">
@@ -681,7 +681,7 @@ function ProductosPanel() {
 
   return (
     <div className="productos-catalogo">
-      <h2><span className="material-icons-round" style={{ fontSize: '32px', verticalAlign: 'middle' }}>inventory_2</span> Product Catalog</h2>
+      <h2><span className="material-icons-round" style={{ fontSize: '32px', verticalAlign: 'middle' }}>inventory_2</span> Catálogo de Productos</h2>
 
       <div className="productos-grid-catalogo">
         {products.map(product => (
@@ -767,7 +767,7 @@ function MisMetasPanel() {
           <span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>
             show_chart
           </span>
-          {' '}My Sales Goals
+          {' '}Mis Metas de Ventas
         </h2>
       </div>
 

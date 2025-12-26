@@ -394,6 +394,15 @@
   font-size: 0.9rem;
 }
 
+/* Responsive Monthly Sales */
+.monthly-sales-section {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: white;
+}
+
 .sales-table tr:last-child td {
   border-bottom: none;
 }

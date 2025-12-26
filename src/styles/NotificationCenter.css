@@ -258,11 +258,36 @@
 
 @media (max-width: 480px) {
   .notification-panel {
-    width: 100vw;
-    right: -1rem;
-    /* Offset for container padding */
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    width: 100%;
     height: calc(100vh - 70px);
     max-height: none;
     border-radius: 0;
+    margin: 0;
+  }
+
+  .notification-bell {
+    width: 38px;
+    height: 38px;
+  }
+
+  .panel-header {
+    padding: 1rem;
+  }
+
+  .panel-header h3 {
+    font-size: 1rem;
+  }
+
+  .notification-item {
+    padding: 0.875rem 1rem;
+  }
+
+  .notifications-list {
+    max-height: none;
+    height: 100%;
   }
 }
