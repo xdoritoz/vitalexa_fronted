@@ -79,6 +79,7 @@ function NuevaVentaPanel() {
   const [loading, setLoading] = useState(true);
   const [allowNoClient, setAllowNoClient] = useState(false);
   const [notas, setNotas] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const toast = useToast();
 
   useEffect(() => {
@@ -198,6 +199,11 @@ function NuevaVentaPanel() {
     return <div className="loading">Cargando...</div>;
   }
 
+  const filteredProducts = products.filter(p =>
+    p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.descripcion && p.descripcion.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div className="nueva-venta-panel">
       <h2><span className="material-icons-round" style={{ fontSize: '32px', color: 'var(--primary)', verticalAlign: 'middle' }}>add_shopping_cart</span> Nueva Venta</h2>
@@ -205,9 +211,29 @@ function NuevaVentaPanel() {
       <div className="venta-layout">
         {/* ✅ SECCIÓN IZQUIERDA - PRODUCTOS CON IMÁGENES CORREGIDAS */}
         <div className="productos-section">
-          <h3>Productos Disponibles</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3>Productos Disponibles</h3>
+            <div style={{ position: 'relative' }}>
+              <span className="material-icons-round" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}>search</span>
+              <input
+                type="text"
+                placeholder="Buscar productos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  padding: '8px 16px 8px 36px',
+                  borderRadius: '20px',
+                  border: '1px solid #e2e8f0',
+                  outline: 'none',
+                  fontSize: '14px',
+                  width: '250px',
+                  transition: 'all 0.2s'
+                }}
+              />
+            </div>
+          </div>
           <div className="productos-grid">
-            {products.map(product => (
+            {filteredProducts.map(product => (
               <div key={product.id} className="product-card">
                 {/* ✅ IMAGEN CORREGIDA */}
                 <img
