@@ -7,11 +7,6 @@ import '../styles/VendedorDashboard.css';
 // ✅ CONFIGURACIÓN CENTRALIZADA
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
-// ✅ FUNCIÓN HELPER PARA URL DE IMÁGENES
-const getImageUrl = (imageUrl) => {
-  if (!imageUrl) return null;
-  return `${API_BASE_URL}/api/images/products/${imageUrl}`;
-};
 
 // ✅ PLACEHOLDER SVG
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f3f4f6" width="200" height="200"/%3E%3Ctext fill="%239ca3af" font-family="Arial, sans-serif" font-size="16" dy="10" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3ESin Imagen%3C/text%3E%3C/svg%3E';
@@ -216,7 +211,7 @@ function NuevaVentaPanel() {
               <div key={product.id} className="product-card">
                 {/* ✅ IMAGEN CORREGIDA */}
                 <img
-                  src={getImageUrl(product.imageUrl) || PLACEHOLDER_IMAGE}
+                  src={product.imageUrl || PLACEHOLDER_IMAGE}
                   alt={product.nombre}
                   onError={(e) => {
                     console.warn(`⚠️ Error cargando imagen: ${product.imageUrl}`);
@@ -693,7 +688,7 @@ function ProductosPanel() {
           <div key={product.id} className="producto-card">
             {/* ✅ IMAGEN CORREGIDA */}
             <img
-              src={getImageUrl(product.imageUrl) || PLACEHOLDER_IMAGE}
+              src={product.imageUrl || PLACEHOLDER_IMAGE}
               alt={product.nombre}
               onError={(e) => {
                 console.warn(`⚠️ Error cargando imagen: ${product.imageUrl}`);
