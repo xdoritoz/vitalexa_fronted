@@ -1511,6 +1511,43 @@
   font-size: 0.9rem;
 }
 
+/* Specific Mobile Fix for Top Products Chart */
+@media (max-width: 600px) {
+  .product-bar-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .product-bar-row:last-child {
+    border-bottom: none;
+  }
+
+  .product-bar-row .product-name {
+    width: auto;
+    text-align: left;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .product-bar-row .product-amount {
+    width: auto;
+    font-size: 1rem;
+  }
+
+  .product-bar-container {
+    grid-column: span 2;
+    height: 28px;
+    margin-top: 0.25rem;
+  }
+
+  .product-bar .bar-text {
+    font-size: 0.8rem;
+  }
+}
+
 .product-bar-row:nth-child(1) .product-bar {
   background: linear-gradient(90deg, #F59E0B, #FBBF24);
 }
