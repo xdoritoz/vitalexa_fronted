@@ -5,8 +5,7 @@ import { useToast } from '../components/ToastContainer';
 import NotificationService from '../services/NotificationService';
 import '../styles/VendedorDashboard.css';
 
-// ✅ CONFIGURACIÓN CENTRALIZADA
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
 
 
 // ✅ PLACEHOLDER SVG
@@ -15,7 +14,6 @@ const PLACEHOLDER_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/20
 function VendedorDashboard() {
   const [activeTab, setActiveTab] = useState('nueva-venta');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Connect with role 'vendedor'
@@ -461,7 +459,6 @@ function ClientesPanel() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const toast = useToast();
 
   useEffect(() => {
     fetchClients();
@@ -691,9 +688,13 @@ function MisVentasPanel() {
 // ============================================
 // ✅ PANEL PRODUCTOS CATÁLOGO - CORREGIDO
 // ============================================
+// ============================================
+// ✅ PANEL PRODUCTOS CATÁLOGO - CORREGIDO
+// ============================================
 function ProductosPanel() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchProducts();
@@ -710,27 +711,46 @@ function ProductosPanel() {
     }
   };
 
+  const filteredProducts = products.filter(p =>
+    p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.descripcion && p.descripcion.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   if (loading) {
     return <div className="loading">Cargando...</div>;
   }
 
   return (
     <div className="productos-catalogo">
-      <h2><span className="material-icons-round" style={{ fontSize: '32px', verticalAlign: 'middle' }}>inventory_2</span> Catálogo de Productos</h2>
+      <div className="panel-header-catalogo">
+        <h2><span className="material-icons-round" style={{ fontSize: '32px', verticalAlign: 'middle' }}>inventory_2</span> Catálogo de Productos</h2>
+        <div className="search-container-catalogo">
+          <span className="material-icons-round search-icon">search</span>
+          <input
+            type="text"
+            placeholder="Buscar productos..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input-catalogo"
+          />
+        </div>
+      </div>
 
       <div className="productos-grid-catalogo">
-        {products.map(product => (
+        {filteredProducts.map(product => (
           <div key={product.id} className="producto-card">
             {/* ✅ IMAGEN CORREGIDA */}
-            <img
-              src={product.imageUrl || PLACEHOLDER_IMAGE}
-              alt={product.nombre}
-              onError={(e) => {
-                console.warn(`⚠️ Error cargando imagen: ${product.imageUrl}`);
-                e.target.src = PLACEHOLDER_IMAGE;
-              }}
-              loading="lazy"
-            />
+            <div className="producto-img-container">
+              <img
+                src={product.imageUrl || PLACEHOLDER_IMAGE}
+                alt={product.nombre}
+                onError={(e) => {
+                  console.warn(`⚠️ Error cargando imagen: ${product.imageUrl}`);
+                  e.target.src = PLACEHOLDER_IMAGE;
+                }}
+                loading="lazy"
+              />
+            </div>
             <div className="producto-info">
               <h3>{product.nombre}</h3>
               <p className="producto-descripcion">{product.descripcion}</p>
@@ -757,7 +777,6 @@ function MisMetasPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
-  const toast = useToast();
 
   useEffect(() => {
     fetchCurrentGoal();

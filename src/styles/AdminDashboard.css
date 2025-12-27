@@ -11,7 +11,7 @@
 }
 
 /* NAVEGACIÓN TAB */
-.dashboard-nav {
+.admin-dashboard .dashboard-nav {
   background: var(--bg-card);
   padding: 1rem 1.5rem;
   display: flex;
@@ -1062,6 +1062,7 @@
     grid-template-columns: 1fr;
   }
 }
+
 /* Edit Order Modal - Mobile Optimizations */
 @media (max-width: 768px) {
   .modal-content-large {
